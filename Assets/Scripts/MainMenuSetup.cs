@@ -10,13 +10,23 @@ public class MainMenuSetup : MonoBehaviour
     [Header("Content")]
     [Tooltip("Assign the Title_Text object you created under MainMenu_Panel (UI → Text). If set, menuTitle is applied at runtime.")]
     public RectTransform titleTextRef;
-    [Tooltip("Text to show in the title. Only used if titleTextRef is assigned.")]
+    [Tooltip("If enabled, script will enforce top-center title anchoring/position each run.")]
+    public bool autoPositionTitle = false;
+    [Tooltip("If enabled, menuTitle will overwrite the Title_Text content at runtime.")]
+    public bool overrideTitleTextFromScript = false;
+    [Tooltip("Only used when overrideTitleTextFromScript is enabled.")]
     public string menuTitle = "Psyche Mission Strategy";
 
     [Header("Sprites (Optional)")]
     public Sprite buttonSprite;
     [Tooltip("Background image (e.g. Psyche asteroid). For video background instead, add MenuVideoBackground to Background_Layer.")]
     public Sprite backgroundImage;
+
+    [Header("Button Layout")]
+    [Tooltip("Vertical spacing between menu buttons.")]
+    public float buttonSpacing = 108f;
+    [Tooltip("Y position for the first button.")]
+    public float firstButtonY = 20f;
 
     private int _framesApplied;
 
@@ -77,21 +87,20 @@ public class MainMenuSetup : MonoBehaviour
         Text titleText = titleT.GetComponent<Text>();
         if (titleText == null) titleText = titleT.gameObject.AddComponent<Text>();
 
-        titleText.text = string.IsNullOrEmpty(menuTitle) ? "Psyche Mission Strategy" : menuTitle;
-        titleText.fontSize = 42;
-        titleText.fontStyle = FontStyle.Bold;
-        titleText.alignment = TextAnchor.MiddleCenter;
-        titleText.color = Color.white;
-        if (titleText.font == null)
-            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        // Let designers edit title text/styling directly in the Unity Editor.
+        // Only override text when explicitly requested.
+        if (overrideTitleTextFromScript)
+            titleText.text = string.IsNullOrEmpty(menuTitle) ? "Psyche Mission Strategy" : menuTitle;
+        // Prevent truncation when using larger title fonts.
+        titleText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        titleText.verticalOverflow = VerticalWrapMode.Overflow;
 
         RectTransform titleRect = titleT as RectTransform;
-        if (titleRect != null)
+        if (titleRect != null && autoPositionTitle)
         {
             titleRect.anchorMin = new Vector2(0.5f, 1f);
             titleRect.anchorMax = new Vector2(0.5f, 1f);
             titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(480, 70);
             titleRect.anchoredPosition = new Vector2(0f, -20f);
         }
     }
@@ -102,6 +111,12 @@ public class MainMenuSetup : MonoBehaviour
         var video = GetComponentInChildren<MenuVideoBackground>(includeInactive: false);
         if (video != null)
             video.transform.SetAsFirstSibling();
+
+        // Keep readability backdrop between video and menu content (if present).
+        var backdrop = transform.Find("TitleReadability_Backdrop");
+        if (backdrop != null)
+            backdrop.SetSiblingIndex(Mathf.Min(1, transform.childCount - 1));
+
         // Make panel background transparent so video is visible
         var panelImage = GetComponent<Image>();
         if (panelImage != null && video != null)
@@ -111,7 +126,7 @@ public class MainMenuSetup : MonoBehaviour
     private void PositionTitleAndButtons()
     {
         Transform titleT = titleTextRef != null ? titleTextRef : transform.Find("Title_Text");
-        if (titleT != null)
+        if (titleT != null && autoPositionTitle)
         {
             var titleRect = titleT.GetComponent<RectTransform>();
             if (titleRect != null)
@@ -127,8 +142,6 @@ public class MainMenuSetup : MonoBehaviour
         Button[] buttons = GetComponentsInChildren<Button>(includeInactive: false);
         if (buttons == null || buttons.Length == 0) return;
 
-        float buttonSpacing = 88f;
-        float firstButtonY = 40f;
         int index = 0;
         for (int i = 0; i < buttons.Length; i++)
         {
