@@ -1,15 +1,27 @@
 using UnityEngine;
+using TMPro; // This line is crucial for UI!
 
 public class ResourceManager : MonoBehaviour
 {
-   
-    public int currentPower = 3; 
-    public int currentBudget = 6;
-    public int currentTime = 15;
+    public int power = 3;
+    public int budget = 6;
+    public int time = 15;
 
-   
-    public void ResetPower()
+    [Header("UI References")]
+    public TextMeshProUGUI powerText;
+    public TextMeshProUGUI budgetText;
+    public TextMeshProUGUI timeText;
+
+    void Start()
     {
-        currentPower = 3;
+        UpdateUI();
+    }
+
+    // This updates the text on the screen to match our numbers
+    public void UpdateUI()
+    {
+        powerText.text = "Power: " + power;
+        budgetText.text = "Budget: " + budget;
+        timeText.text = "Time: " + time;
     }
 }
