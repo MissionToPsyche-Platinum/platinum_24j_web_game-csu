@@ -1,22 +1,27 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// Displays Power, Budget, and Time from ResourceManager.
-/// Add this to a Canvas (e.g. under Gameplay_Layer). Assign the three Text components in the Inspector.
+/// Assign either legacy UI Text or TextMeshPro (TMP) labels in the Inspector.
 /// If ResourceManager is not in the scene (e.g. main menu), this will do nothing.
 /// </summary>
 public class ResourceHUD : MonoBehaviour
 {
-    [Header("Resource labels (optional - assign Text components)")]
-    [Tooltip("Shows current Power. Leave empty to hide.")]
+    [Header("Resource labels - Legacy UI Text")]
+    [Tooltip("Shows current Power. Leave empty if using TMP below.")]
     public Text powerText;
 
-    [Tooltip("Shows current Budget. Leave empty to hide.")]
     public Text budgetText;
-
-    [Tooltip("Shows current Time. Leave empty to hide.")]
     public Text timeText;
+
+    [Header("Resource labels - TextMeshPro (optional)")]
+    [Tooltip("Use these if your HUD uses TextMeshPro - Text (UI).")]
+    public TMP_Text powerTMP;
+
+    public TMP_Text budgetTMP;
+    public TMP_Text timeTMP;
 
     [Header("Label format")]
     [Tooltip("Format: {0} = value. E.g. 'Power: {0}'")]
@@ -47,8 +52,16 @@ public class ResourceHUD : MonoBehaviour
         int b = ResourceManager.Instance.Budget;
         int t = ResourceManager.Instance.TimeRemaining;
 
-        if (powerText != null) powerText.text = string.Format(powerFormat, p);
-        if (budgetText != null) budgetText.text = string.Format(budgetFormat, b);
-        if (timeText != null) timeText.text = string.Format(timeFormat, t);
+        string powerStr = string.Format(powerFormat, p);
+        string budgetStr = string.Format(budgetFormat, b);
+        string timeStr = string.Format(timeFormat, t);
+
+        if (powerText != null) powerText.text = powerStr;
+        if (budgetText != null) budgetText.text = budgetStr;
+        if (timeText != null) timeText.text = timeStr;
+
+        if (powerTMP != null) powerTMP.text = powerStr;
+        if (budgetTMP != null) budgetTMP.text = budgetStr;
+        if (timeTMP != null) timeTMP.text = timeStr;
     }
 }
