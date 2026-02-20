@@ -4,8 +4,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Simple main menu controller script.
-/// Hook this up to a Canvas-based menu that uses the
-/// Kenney UI Space Expansion sprites for visuals.
+///
 ///
 /// Expected buttons (all optional but recommended):
 /// - Start Game   -> calls OnStartGame()
@@ -22,6 +21,9 @@ public class MainMenuUI : MonoBehaviour
 
     [Tooltip("Optional: scene to load when viewing the full card collection (can be added later).")]
     public string cardCollectionSceneName = "";
+
+    [Tooltip("Scene to load for options menu.")]
+    public string optionsSceneName = OptionsNavigation.DefaultOptionsScene;
 
     [Header("Panels / Layout")]
     [Tooltip("Optional: options panel GameObject to toggle on/off.")]
@@ -71,13 +73,19 @@ public class MainMenuUI : MonoBehaviour
 
     /// <summary>
     /// Called by the Options button.
-    /// Shows the options panel (placeholder for now).
+    /// Opens the dedicated options scene.
     /// </summary>
     public void OnOpenOptions()
     {
+        if (!string.IsNullOrEmpty(optionsSceneName))
+        {
+            OptionsNavigation.OpenOptions(optionsSceneName);
+            return;
+        }
+
+        // Fallback: old in-scene panel behavior.
         if (optionsPanel != null)
             optionsPanel.SetActive(true);
-
         if (mainMenuPanel != null)
             mainMenuPanel.SetActive(false);
     }
