@@ -152,7 +152,7 @@ public class CardHandLayout : MonoBehaviour
 
             if (useRectTransform && c.rectTransform != null)
             {
-                c.rectTransform.anchoredPosition = localPos;
+                c.rectTransform.anchoredPosition = new Vector2(localPos.x, localPos.y);
                 c.rectTransform.localRotation = rotation;
                 c.rectTransform.localScale = Vector3.one;
             }
@@ -247,7 +247,8 @@ public class CardHandLayout : MonoBehaviour
 
             if (_layout.useRectTransform && _rectTransform != null)
             {
-                _startPos = _rectTransform.anchoredPosition;
+                var ap = _rectTransform.anchoredPosition;
+                _startPos = new Vector3(ap.x, ap.y, 0f);
                 _startRot = _rectTransform.localRotation;
                 _startScale = _rectTransform.localScale;
             }
@@ -275,7 +276,7 @@ public class CardHandLayout : MonoBehaviour
 
             if (_layout.useRectTransform && _rectTransform != null)
             {
-                _rectTransform.anchoredPosition = pos;
+                _rectTransform.anchoredPosition = new Vector2(pos.x, pos.y);
                 _rectTransform.localRotation = rot;
                 _rectTransform.localScale = scale;
             }
@@ -351,7 +352,8 @@ public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
                         : null,
                     out var localPoint))
             {
-                _dragOffset = _rectTransform.anchoredPosition - (Vector2)localPoint;
+                var delta = _rectTransform.anchoredPosition - localPoint;
+                _dragOffset = new Vector3(delta.x, delta.y, 0f);
             }
         }
         else

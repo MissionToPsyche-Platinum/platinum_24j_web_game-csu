@@ -284,13 +284,14 @@ GameObject:
   - component: {fileID: 161176677}
   - component: {fileID: 161176678}
   - component: {fileID: 161176679}
+  - component: {fileID: 161176680}
   m_Layer: 0
   m_Name: Hand_Zone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &161176677
 RectTransform:
   m_ObjectHideFlags: 0
@@ -343,6 +344,21 @@ MonoBehaviour:
   hoverScale: 1.5
   hoverHeight: 100
   moveSpeed: 10
+--- !u!114 &161176680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 161176676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b0068591d179354b9445469a453c22b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeckManager
+  handParent: {fileID: 161176677}
+  cardPrefab: {fileID: 11400000, guid: f91c005070883f54b91a99eb5f20b6fd, type: 3}
+  startingDeck: []
 --- !u!1 &164225471
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,7 +13,7 @@ public static class PsycheBootstrap
     private static void OnAfterSceneLoad()
     {
         // Ensure there is a ResourceManager (singleton).
-        var existingManager = Object.FindObjectOfType<ResourceManager>();
+        var existingManager = Object.FindFirstObjectByType<ResourceManager>();
         if (existingManager == null)
         {
             var go = new GameObject("ResourceManager");
@@ -25,7 +25,7 @@ public static class PsycheBootstrap
         existingManager.ResetForNewRun();
 
         // Ensure there is at least one ResourceHUD.
-        var existingHud = Object.FindObjectOfType<ResourceHUD>();
+        var existingHud = Object.FindFirstObjectByType<ResourceHUD>();
         if (existingHud == null)
         {
             CreateSimpleHud(existingManager);
@@ -35,7 +35,7 @@ public static class PsycheBootstrap
     private static void CreateSimpleHud(ResourceManager manager)
     {
         // Try to attach to an existing Canvas (e.g. Main_Canvas) if present.
-        Canvas targetCanvas = Object.FindObjectOfType<Canvas>();
+        Canvas targetCanvas = Object.FindFirstObjectByType<Canvas>();
         if (targetCanvas == null)
         {
             // Fallback: create our own overlay canvas.
