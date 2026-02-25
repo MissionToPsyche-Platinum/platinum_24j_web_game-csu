@@ -24,4 +24,10 @@ public class ResourceManager : MonoBehaviour
         budgetText.text = "Budget: " + budget;
         timeText.text = "Time: " + time;
     }
+    public void EndTurn() {
+    time -= 1; // Mission time decreases
+    power = 5; // Reset power for the new turn (like recharging batteries)
+    UpdateUI();
+    if (time <= 0) Debug.Log("Mission Failed: Out of Time!");
+}
 }
