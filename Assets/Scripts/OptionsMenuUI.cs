@@ -3,83 +3,93 @@ using UnityEngine.UI;
 
 public class OptionsMenuUI : MonoBehaviour
 {
+    [Header("Background")]
+    [SerializeField] private UnityEngine.UI.RawImage backgroundImage;
+
     [Header("UI References")]
-    public Slider musicSlider;
-    public Slider sfxSlider;
-    public Button returnButton;
+    [SerializeField] private Slider musicSlider;
+    [SerializeField] private Slider sfxSlider;
+    [SerializeField] private Button returnButton;
 
     private void Awake()
     {
-        AutoBindIfNeeded();
+        // Automatically attempt to find references if they are missing in the Inspector
+        AutoBindReferences();
+        
+        // Setup initial values and listeners
+        ConfigureUI();
+    }
 
+private void AutoBindReferences()
+    {
+        // We use transform.Find for specific names to avoid picking up the wrong slider
+        if (musicSlider == null) 
+            musicSlider = transform.Find("MusicSlider")?.GetComponent<Slider>();
+        
+        if (sfxSlider == null) 
+            sfxSlider = transform.Find("SfxSlider")?.GetComponent<Slider>();
+        
+        if (returnButton == null) 
+            returnButton = transform.Find("ReturnButton")?.GetComponent<Button>();
+
+        if (backgroundImage == null)
+            backgroundImage = transform.Find("Background")?.GetComponent<UnityEngine.UI.RawImage>();
+    }
+
+    private void ConfigureUI()
+    {
+        // Setup Music Slider
         if (musicSlider != null)
         {
+            // Use SetValueWithoutNotify to avoid triggering the 'Save' logic on Awake
             musicSlider.SetValueWithoutNotify(AudioSettingsStore.MusicVolume);
-            musicSlider.onValueChanged.RemoveListener(OnMusicChanged);
-            musicSlider.onValueChanged.AddListener(OnMusicChanged);
+            musicSlider.onValueChanged.AddListener(HandleMusicChanged);
         }
 
+        // Setup SFX Slider
         if (sfxSlider != null)
         {
             sfxSlider.SetValueWithoutNotify(AudioSettingsStore.SfxVolume);
-            sfxSlider.onValueChanged.RemoveListener(OnSfxChanged);
-            sfxSlider.onValueChanged.AddListener(OnSfxChanged);
+            sfxSlider.onValueChanged.AddListener(HandleSfxChanged);
         }
 
+        // Setup Return Button
         if (returnButton != null)
         {
-            returnButton.onClick.RemoveListener(OnReturnClicked);
-            returnButton.onClick.AddListener(OnReturnClicked);
+            returnButton.onClick.AddListener(HandleReturnClicked);
         }
     }
 
     private void OnDestroy()
     {
-        if (musicSlider != null)
-            musicSlider.onValueChanged.RemoveListener(OnMusicChanged);
-        if (sfxSlider != null)
-            sfxSlider.onValueChanged.RemoveListener(OnSfxChanged);
-        if (returnButton != null)
-            returnButton.onClick.RemoveListener(OnReturnClicked);
+        // Unsubscribe from all events to prevent memory leaks or errors on scene change
+        if (musicSlider != null) 
+            musicSlider.onValueChanged.RemoveListener(HandleMusicChanged);
+        
+        if (sfxSlider != null) 
+            sfxSlider.onValueChanged.RemoveListener(HandleSfxChanged);
+        
+        if (returnButton != null) 
+            returnButton.onClick.RemoveListener(HandleReturnClicked);
     }
 
-    private static void OnMusicChanged(float value)
+    // --- Event Handlers ---
+
+    private void HandleMusicChanged(float value)
     {
         AudioSettingsStore.MusicVolume = value;
+        // Optional: Trigger your Audio Manager here to update live music volume
     }
 
-    private static void OnSfxChanged(float value)
+    private void HandleSfxChanged(float value)
     {
         AudioSettingsStore.SfxVolume = value;
+        // Optional: Play a small "blip" sound here so the user hears the new volume level
     }
 
-    private static void OnReturnClicked()
+    private void HandleReturnClicked()
     {
+        // Navigates back using your project's existing navigation logic
         OptionsNavigation.ReturnToPreviousOrFallback();
     }
-
-    private void AutoBindIfNeeded()
-    {
-        if (musicSlider == null)
-        {
-            var musicGo = GameObject.Find("MusicSlider");
-            if (musicGo != null)
-                musicSlider = musicGo.GetComponent<Slider>();
-        }
-
-        if (sfxSlider == null)
-        {
-            var sfxGo = GameObject.Find("SfxSlider");
-            if (sfxGo != null)
-                sfxSlider = sfxGo.GetComponent<Slider>();
-        }
-
-        if (returnButton == null)
-        {
-            var returnGo = GameObject.Find("ReturnButton");
-            if (returnGo != null)
-                returnButton = returnGo.GetComponent<Button>();
-        }
-    }
 }
-
