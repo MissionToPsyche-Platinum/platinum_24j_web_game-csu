@@ -4,6 +4,7 @@ using TMPro;
 
 /// <summary>
 /// Displays Power, Budget, and Time from ResourceManager.
+/// The HUD updates whenever resources change (e.g. when a card is played — ResourceManager.OnResourcesChanged is fired after TrySpend/Add).
 /// Assign either legacy UI Text or TextMeshPro (TMP) labels in the Inspector.
 /// If ResourceManager is not in the scene (e.g. main menu), this will do nothing.
 /// </summary>

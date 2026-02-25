@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,7 +21,7 @@ public class CardHandLayout : MonoBehaviour
     public GameObject cardPrefab;
 
     [Tooltip("Optional: parent for instantiated cards. Defaults to this transform.")]
-    public Transform cardsParent;
+    public Transform cardsParent = null!;
 
     [Header("Fan Layout")]
     [Tooltip("Total angle (in degrees) that the hand will span.")]
@@ -243,7 +244,7 @@ public class CardHandLayout : MonoBehaviour
         {
             _layout = layout;
             _transform = card.transform;
-            _rectTransform = rectTransform;
+            _rectTransform = rectTransform!;
 
             if (_layout.useRectTransform && _rectTransform != null)
             {

@@ -69,8 +69,8 @@ public class HandFanner : MonoBehaviour
                 yPos += hoverHeight;     // Move up
                 zRot = 0;                // Straighten out
                 targetScale = hoverScale;// Grow big
-                xPos = xPos;             // Keep X (or add logic to push neighbors)
-                
+                // xPos unchanged for hovered card
+
                 // Bring to front of rendering order so it overlaps neighbors
                 card.SetAsLastSibling(); 
             }

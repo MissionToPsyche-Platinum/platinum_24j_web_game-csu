@@ -25,7 +25,7 @@ public class CardView : MonoBehaviour, IPointerClickHandler
     /// <summary>Current card data (read-only).</summary>
     public CardData CardData => _cardData;
 
-    /// <summary>Bind card data and deck manager. Call from DeckManager when spawning.</summary>
+    /// <summary>Bind card data and deck manager. Call from DeckManager when spawning. Pass deckManager = null for gallery (display only, no play).</summary>
     public void Bind(CardData data, DeckManager deckManager)
     {
         _cardData = data;
@@ -33,6 +33,12 @@ public class CardView : MonoBehaviour, IPointerClickHandler
         if (title != null && data != null) title.text = data.cardName;
         if (description != null && data != null) description.text = data.description;
         if (cost != null && data != null) cost.text = data.CostString();
+    }
+
+    /// <summary>Bind card data for gallery view (display only). No DeckManager = no click-to-play.</summary>
+    public void BindForGallery(CardData data)
+    {
+        Bind(data, null);
     }
 
     public void OnPointerClick(PointerEventData eventData)

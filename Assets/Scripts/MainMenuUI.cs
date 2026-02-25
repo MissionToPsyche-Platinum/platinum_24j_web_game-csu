@@ -3,24 +3,18 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Simple main menu controller script.
-///
-///
-/// Expected buttons (all optional but recommended):
-/// - Start Game   -> calls OnStartGame()
-/// - Options      -> calls OnOpenOptions() / OnCloseOptions()
-/// - View Cards   -> calls OnViewCards()
-///
-/// You can wire these in the Button.onClick events in the Inspector.
+/// Simple main menu controller script. Button methods use UnityEngine.SceneManagement to load scenes.
+/// Expected buttons: Start Game -> OnStartGame() (loads SampleScene); Options -> OnOpenOptions()/OnCloseOptions(); View Cards -> OnViewCards() (loads CardGallery).
+/// Wire these in the Button.onClick events in the Inspector.
 /// </summary>
 public class MainMenuUI : MonoBehaviour
 {
     [Header("Scene Names")]
-    [Tooltip("Scene to load when starting the game (e.g., 'SampleScene').")]
+    [Tooltip("Scene to load when starting the game. Uses SceneManager.LoadScene.")]
     public string gameSceneName = "SampleScene";
 
-    [Tooltip("Optional: scene to load when viewing the full card collection (can be added later).")]
-    public string cardCollectionSceneName = "";
+    [Tooltip("Scene to load when viewing the card collection (e.g. CardGallery). Uses SceneManager.LoadScene.")]
+    public string cardCollectionSceneName = "CardGallery";
 
     [Tooltip("Scene to load for options menu.")]
     public string optionsSceneName = OptionsNavigation.DefaultOptionsScene;
@@ -43,32 +37,12 @@ public class MainMenuUI : MonoBehaviour
     public GameObject backgroundLayer;
 
     /// <summary>
-    /// Called by the Start Game button.
-    /// If a game scene name is set, loads that scene.
-    /// Otherwise, toggles existing layers in the current scene:
-    /// - Hides the main menu panel
-    /// - Enables gameplay and hand layers
+    /// Called by the Start Game button. Loads SampleScene (or gameSceneName) via SceneManager.
     /// </summary>
     public void OnStartGame()
     {
-        if (!string.IsNullOrEmpty(gameSceneName))
-        {
-            SceneManager.LoadScene(gameSceneName);
-            return;
-        }
-
-        // In-scene toggle mode using existing Main_Canvas layers.
-        if (mainMenuPanel != null)
-            mainMenuPanel.SetActive(false);
-
-        if (gameplayLayer != null)
-            gameplayLayer.SetActive(true);
-
-        if (handZoneLayer != null)
-            handZoneLayer.SetActive(true);
-
-        if (backgroundLayer != null)
-            backgroundLayer.SetActive(true);
+        string sceneToLoad = !string.IsNullOrEmpty(gameSceneName) ? gameSceneName : "SampleScene";
+        SceneManager.LoadScene(sceneToLoad);
     }
 
     /// <summary>
@@ -103,20 +77,12 @@ public class MainMenuUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Called by the View Cards button.
-    /// For now this can either log a message or, once implemented,
-    /// load a dedicated card-collection scene.
+    /// Called by the View Cards button. Loads CardGallery (or cardCollectionSceneName) via SceneManager.
     /// </summary>
     public void OnViewCards()
     {
-        if (!string.IsNullOrEmpty(cardCollectionSceneName))
-        {
-            SceneManager.LoadScene(cardCollectionSceneName);
-        }
-        else
-        {
-            Debug.Log("MainMenuUI: View Cards clicked. Card collection scene not set yet.");
-        }
+        string sceneToLoad = !string.IsNullOrEmpty(cardCollectionSceneName) ? cardCollectionSceneName : "CardGallery";
+        SceneManager.LoadScene(sceneToLoad);
     }
 
     /// <summary>
