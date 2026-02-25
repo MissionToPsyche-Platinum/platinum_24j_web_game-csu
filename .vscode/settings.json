@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Parth-MissionToPsyche.slnx"
+    "dotnet.defaultSolution": "platinum_24j_web_game-csu.slnx"
 }
