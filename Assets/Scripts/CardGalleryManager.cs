@@ -10,7 +10,6 @@ using UnityEngine.SceneManagement;
 ///
 /// SETUP: See instructions below for creating the CardGallery Canvas (Scroll View, Content with GridLayoutGroup, Back button).
 /// </summary>
-
 public class CardGalleryManager : MonoBehaviour
 {
     [Header("Card collection")]
@@ -78,14 +77,15 @@ public class CardGalleryManager : MonoBehaviour
 
             GameObject instance = Instantiate(cardPrefab, gridContent);
             var view = instance.GetComponent<CardView>();
-           
+            if (view != null)
+                view.BindForGallery(data);
+            else
+                PopulateCardManually(instance, data);
         }
-        
 
         // Force layout rebuild so GridLayoutGroup positions children
         LayoutRebuilder.ForceRebuildLayoutImmediate(gridContent);
     }
-    
 
     /// <summary>Fallback: if prefab has no CardView, set text by finding TMP_Text/Text by common names.</summary>
     private static void PopulateCardManually(GameObject cardInstance, CardData data)
