@@ -51,8 +51,6 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnStartGame()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
         if (!string.IsNullOrEmpty(gameSceneName))
         {
             SceneManager.LoadScene(gameSceneName);
@@ -75,22 +73,21 @@ public class MainMenuUI : MonoBehaviour
 
     /// <summary>
     /// Called by the Options button.
-    /// Shows the options overlay panel (no scene change).
+    /// Opens the dedicated options scene.
     /// </summary>
     public void OnOpenOptions()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
-
-        // Find the overlay if not assigned
-        if (optionsPanel == null)
+        if (!string.IsNullOrEmpty(optionsSceneName))
         {
-            var overlay = GameObject.Find("OptionsOverlay");
-            if (overlay != null) optionsPanel = overlay;
+            OptionsNavigation.OpenOptions(optionsSceneName);
+            return;
         }
 
+        // Fallback: old in-scene panel behavior.
         if (optionsPanel != null)
             optionsPanel.SetActive(true);
+        if (mainMenuPanel != null)
+            mainMenuPanel.SetActive(false);
     }
 
     /// <summary>
@@ -98,8 +95,6 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnCloseOptions()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
@@ -114,8 +109,6 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnViewCards()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
         if (!string.IsNullOrEmpty(cardCollectionSceneName))
         {
             SceneManager.LoadScene(cardCollectionSceneName);
@@ -131,8 +124,6 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnQuitGame()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
         Debug.Log("MainMenuUI: Quit requested.");
         Application.Quit();
     }
