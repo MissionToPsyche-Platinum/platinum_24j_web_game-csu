@@ -1,6 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controls the Options overlay panel.
+/// Reads/writes volume via AudioSettingsStore and updates AudioManager live.
+/// The return button hides the overlay (no scene loading).
+/// </summary>
 public class OptionsMenuUI : MonoBehaviour
 {
     [Header("Background")]
@@ -11,65 +16,91 @@ public class OptionsMenuUI : MonoBehaviour
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Button returnButton;
 
-    private void Awake()
+    [Header("Game UI Reference")]
+    [Tooltip("Optional Canvas to hide when the Options menu is open in-game.")]
+    [SerializeField] private GameObject gameCanvas;
+
+    private void OnEnable()
     {
-        // Automatically attempt to find references if they are missing in the Inspector
+        // Re-bind every time the panel is shown (in case references were lost)
         AutoBindReferences();
-        
-        // Setup initial values and listeners
         ConfigureUI();
+
+        // Hide GameCanvas if assigned
+        if (gameCanvas != null)
+        {
+            gameCanvas.SetActive(false);
+        }
     }
 
-private void AutoBindReferences()
+    private void AutoBindReferences()
     {
-        // We use transform.Find for specific names to avoid picking up the wrong slider
-        if (musicSlider == null) 
-            musicSlider = transform.Find("MusicSlider")?.GetComponent<Slider>();
-        
-        if (sfxSlider == null) 
-            sfxSlider = transform.Find("SfxSlider")?.GetComponent<Slider>();
-        
-        if (returnButton == null) 
-            returnButton = transform.Find("ReturnButton")?.GetComponent<Button>();
+        if (musicSlider == null)
+            musicSlider = transform.Find("Panel/MusicSlider")?.GetComponent<Slider>()
+                       ?? FindInChildren<Slider>("MusicSlider");
+
+        if (sfxSlider == null)
+            sfxSlider = transform.Find("Panel/SfxSlider")?.GetComponent<Slider>()
+                     ?? FindInChildren<Slider>("SfxSlider");
+
+        if (returnButton == null)
+            returnButton = FindInChildren<Button>("ReturnButton");
 
         if (backgroundImage == null)
-            backgroundImage = transform.Find("Background")?.GetComponent<UnityEngine.UI.RawImage>();
+            backgroundImage = FindInChildren<RawImage>("Background");
+
+        // Try to find GameCanvas if not assigned
+        if (gameCanvas == null)
+        {
+            var uiRoot = GameObject.Find("--- UI ---");
+            if (uiRoot != null)
+            {
+                var canvas = uiRoot.transform.Find("GameCanvas");
+                if (canvas != null) gameCanvas = canvas.gameObject;
+            }
+        }
+    }
+
+    private T FindInChildren<T>(string childName) where T : Component
+    {
+        foreach (var t in GetComponentsInChildren<T>(true))
+        {
+            if (t.gameObject.name == childName)
+                return t;
+        }
+        return null;
     }
 
     private void ConfigureUI()
     {
-        // Setup Music Slider
         if (musicSlider != null)
         {
-            // Use SetValueWithoutNotify to avoid triggering the 'Save' logic on Awake
+            musicSlider.onValueChanged.RemoveListener(HandleMusicChanged);
             musicSlider.SetValueWithoutNotify(AudioSettingsStore.MusicVolume);
             musicSlider.onValueChanged.AddListener(HandleMusicChanged);
         }
 
-        // Setup SFX Slider
         if (sfxSlider != null)
         {
+            sfxSlider.onValueChanged.RemoveListener(HandleSfxChanged);
             sfxSlider.SetValueWithoutNotify(AudioSettingsStore.SfxVolume);
             sfxSlider.onValueChanged.AddListener(HandleSfxChanged);
         }
 
-        // Setup Return Button
         if (returnButton != null)
         {
+            returnButton.onClick.RemoveListener(HandleReturnClicked);
             returnButton.onClick.AddListener(HandleReturnClicked);
         }
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        // Unsubscribe from all events to prevent memory leaks or errors on scene change
-        if (musicSlider != null) 
+        if (musicSlider != null)
             musicSlider.onValueChanged.RemoveListener(HandleMusicChanged);
-        
-        if (sfxSlider != null) 
+        if (sfxSlider != null)
             sfxSlider.onValueChanged.RemoveListener(HandleSfxChanged);
-        
-        if (returnButton != null) 
+        if (returnButton != null)
             returnButton.onClick.RemoveListener(HandleReturnClicked);
     }
 
@@ -78,18 +109,44 @@ private void AutoBindReferences()
     private void HandleMusicChanged(float value)
     {
         AudioSettingsStore.MusicVolume = value;
-        // Optional: Trigger your Audio Manager here to update live music volume
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.ApplyVolumes();
     }
 
     private void HandleSfxChanged(float value)
     {
         AudioSettingsStore.SfxVolume = value;
-        // Optional: Play a small "blip" sound here so the user hears the new volume level
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ApplyVolumes();
+            // Play a click so the user hears the new volume level
+            AudioManager.Instance.PlayButtonClick();
+        }
     }
 
     private void HandleReturnClicked()
     {
-        // Navigates back using your project's existing navigation logic
-        OptionsNavigation.ReturnToPreviousOrFallback();
+        // Play click SFX
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayButtonClick();
+
+        // Restore GameCanvas if we had hidden it
+        if (gameCanvas != null)
+        {
+            // Only restore if we are actually in the game scene and not the main menu!
+            // Wait, we need to be careful: if we are in MainMenu, MainMenuUI will handle it.
+            // But we can just check if GameCanvas is meant to be active?
+            // Let's just activate it if MainMenu_Panel is NOT active.
+            var mainMenu = GameObject.Find("MainMenu_Panel");
+            bool mainMenuIsActive = mainMenu != null && mainMenu.activeSelf;
+            
+            if (!mainMenuIsActive)
+            {
+                gameCanvas.SetActive(true);
+            }
+        }
+
+        // Hide this overlay panel
+        gameObject.SetActive(false);
     }
 }
