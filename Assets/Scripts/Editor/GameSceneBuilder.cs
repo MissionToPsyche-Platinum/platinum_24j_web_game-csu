@@ -30,7 +30,7 @@ public static class GameSceneBuilder
     private static readonly Color ColPlayZoneBorder = new Color(0.22f, 0.60f, 0.90f, 0.35f);
 
     private const string FontAssetPath    = "Assets/TextMesh Pro/Fonts/Kenney Future SDF.asset";
-    private const string ButtonSpritePath = "Assets/Imports/kenney_ui-pack-space-expansion/PNG/Green/Extra/Double/button_rectangle.png";
+    private const string ButtonSpritePath = "Assets/Art/button_rectangle.asset";
 
     private static TMP_FontAsset LoadFont()
     {
