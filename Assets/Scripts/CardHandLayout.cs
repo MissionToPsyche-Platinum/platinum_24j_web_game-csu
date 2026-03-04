@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -21,7 +20,7 @@ public class CardHandLayout : MonoBehaviour
     public GameObject cardPrefab;
 
     [Tooltip("Optional: parent for instantiated cards. Defaults to this transform.")]
-    public Transform cardsParent = null!;
+    public Transform cardsParent;
 
     [Header("Fan Layout")]
     [Tooltip("Total angle (in degrees) that the hand will span.")]
@@ -153,7 +152,7 @@ public class CardHandLayout : MonoBehaviour
 
             if (useRectTransform && c.rectTransform != null)
             {
-                c.rectTransform.anchoredPosition = new Vector2(localPos.x, localPos.y);
+                c.rectTransform.anchoredPosition = localPos;
                 c.rectTransform.localRotation = rotation;
                 c.rectTransform.localScale = Vector3.one;
             }
@@ -244,12 +243,11 @@ public class CardHandLayout : MonoBehaviour
         {
             _layout = layout;
             _transform = card.transform;
-            _rectTransform = rectTransform!;
+            _rectTransform = rectTransform;
 
             if (_layout.useRectTransform && _rectTransform != null)
             {
-                var ap = _rectTransform.anchoredPosition;
-                _startPos = new Vector3(ap.x, ap.y, 0f);
+                _startPos = _rectTransform.anchoredPosition;
                 _startRot = _rectTransform.localRotation;
                 _startScale = _rectTransform.localScale;
             }
@@ -277,7 +275,7 @@ public class CardHandLayout : MonoBehaviour
 
             if (_layout.useRectTransform && _rectTransform != null)
             {
-                _rectTransform.anchoredPosition = new Vector2(pos.x, pos.y);
+                _rectTransform.anchoredPosition = pos;
                 _rectTransform.localRotation = rot;
                 _rectTransform.localScale = scale;
             }
@@ -353,8 +351,7 @@ public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
                         : null,
                     out var localPoint))
             {
-                var delta = _rectTransform.anchoredPosition - localPoint;
-                _dragOffset = new Vector3(delta.x, delta.y, 0f);
+                _dragOffset = _rectTransform.anchoredPosition - (Vector2)localPoint;
             }
         }
         else
