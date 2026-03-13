@@ -1,33 +1,46 @@
 using UnityEngine;
-using TMPro; // This line is crucial for UI!
+using TMPro;
 
 public class ResourceManager : MonoBehaviour
 {
+    public static ResourceManager Instance { get; private set; }
+    public System.Action<int, int, int> OnResourcesChanged;
+
+    [Header("Resource Values")]
     public int power = 3;
     public int budget = 6;
     public int time = 15;
 
-    [Header("UI References")]
-    public TextMeshProUGUI powerText;
-    public TextMeshProUGUI budgetText;
-    public TextMeshProUGUI timeText;
+    public int Power => power;
+    public int Budget => budget;
+    public int TimeRemaining => time;
 
-    void Start()
+    private void Awake()
     {
-        UpdateUI();
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
-    // This updates the text on the screen to match our numbers
     public void UpdateUI()
     {
-        powerText.text = "Power: " + power;
-        budgetText.text = "Budget: " + budget;
-        timeText.text = "Time: " + time;
+        OnResourcesChanged?.Invoke(power, budget, time);
     }
-    public void EndTurn() {
-    time -= 1; // Mission time decreases
-    power = 5; // Reset power for the new turn (like recharging batteries)
-    UpdateUI();
-    if (time <= 0) Debug.Log("Mission Failed: Out of Time!");
-}
+
+    public void EndTurn() 
+    {
+        time -= 1; 
+        power = 5; 
+        UpdateUI();
+        if (time <= 0) Debug.Log("Mission Failed!");
+    }
+
+    public void ResetForNewRun() { power = 3; budget = 6; time = 15; UpdateUI(); }
+    
+    public bool CanAfford(int p, int b, int t) => power >= p && budget >= b && time >= t;
+
+    public void TrySpend(int p, int b, int t)
+    {
+        power -= p; budget -= b; time -= t;
+        UpdateUI();
+    }
 }
