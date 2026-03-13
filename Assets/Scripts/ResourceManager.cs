@@ -7,6 +7,7 @@ public class ResourceManager : MonoBehaviour
     public static ResourceManager Instance { get; private set; }
 
     // 2. The event that tells the HUD to refresh
+    public static ResourceManager Instance { get; private set; }
     public System.Action<int, int, int> OnResourcesChanged;
 
     [Header("Resource Values")]
@@ -32,8 +33,14 @@ public class ResourceManager : MonoBehaviour
     }
 
     void Start()
+    public int Power => power;
+    public int Budget => budget;
+    public int TimeRemaining => time;
+
+    private void Awake()
     {
-        UpdateUI();
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
     public void UpdateUI()
@@ -74,6 +81,16 @@ public class ResourceManager : MonoBehaviour
         power -= p;
         budget -= b;
         time -= t;
+        if (time <= 0) Debug.Log("Mission Failed!");
+    }
+
+    public void ResetForNewRun() { power = 3; budget = 6; time = 15; UpdateUI(); }
+    
+    public bool CanAfford(int p, int b, int t) => power >= p && budget >= b && time >= t;
+
+    public void TrySpend(int p, int b, int t)
+    {
+        power -= p; budget -= b; time -= t;
         UpdateUI();
     }
 }
