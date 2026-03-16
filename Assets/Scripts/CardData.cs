@@ -17,6 +17,9 @@ public class CardData : ScriptableObject
     public string description;
     public int dataValue; // Used for Instrument cards to track data collected
     public Sprite cardArt;
+
+    public enum EffectType { None, GainPower, GainBudget, GainTime }
+    public EffectType effectType;
     
     public enum Rarity { Common, Uncommon, Rare }
     public Rarity rarity;
