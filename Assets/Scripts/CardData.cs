@@ -9,9 +9,9 @@ public class CardData : ScriptableObject
     public CardType type;
 
     [Header("Costs")]
-    public int powerCost;
-    public int budgetCost;
-    public int timeCost;
+    public int costPower;
+    public int costBudget;
+    public int costTime;
 
     [Header("Effects")]
     public string description;
