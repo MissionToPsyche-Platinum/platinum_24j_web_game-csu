@@ -25,7 +25,25 @@ public class ResourceManager : MonoBehaviour
     {
         OnResourcesChanged?.Invoke(power, budget, time);
     }
+// --- ADDED METHODS TO FIX CS1061 ERRORS ---
+    public void AddPower(int amount) 
+    {
+        power += amount;
+        UpdateUI();
+    }
 
+    public void AddBudget(int amount) 
+    {
+        budget += amount;
+        UpdateUI();
+    }
+
+    public void AddTime(int amount) 
+    {
+        time += amount;
+        UpdateUI();
+    }
+    // ------------------------------------------
     public void EndTurn() 
     {
         time -= 1; 
