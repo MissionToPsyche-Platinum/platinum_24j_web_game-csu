@@ -15,6 +15,7 @@ public class CardData : ScriptableObject
 
     [Header("Effects")]
     public string description;
+    public int effectValue;
     public int dataValue; // Used for Instrument cards to track data collected
     public Sprite cardArt;
 
