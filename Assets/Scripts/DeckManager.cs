@@ -70,12 +70,20 @@ public class DeckManager : MonoBehaviour
     {
         if (handParent == null)
         {
-            var hand = GameObject.Find("Hand_Zone");
-            if (hand != null) handParent = hand.transform;
-            else handParent = transform;
+            var anchor = GameObject.Find("HandViewAnchor");
+            if (anchor != null) handParent = anchor.transform;
+            else
+            {
+                var hand = GameObject.Find("Hand_Zone");
+                if (hand != null) handParent = hand.transform;
+                else handParent = transform;
+            }
         }
         if (!handParent.gameObject.activeSelf)
             handParent.gameObject.SetActive(true);
+
+        if (cardPrefab == null)
+            cardPrefab = Resources.Load<GameObject>("CardView");
 
         if (startingDeck != null && startingDeck.Count > 0)
         {

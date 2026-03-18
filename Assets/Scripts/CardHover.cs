@@ -1,27 +1,40 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+/// <summary>
+/// Pointer event handler for individual cards inside a HandFanner.
+/// Notifies the parent HandFanner on hover enter/exit and plays the card on click.
+/// Auto-attached by HandFanner; can also be placed on a card prefab manually.
+/// </summary>
+public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
-    private HandFanner fanner;
+    private HandFanner _fanner;
 
-    void Start()
+    private void Start()
     {
-        // Find the HandFanner in the parent object
-        fanner = GetComponentInParent<HandFanner>();
+        _fanner = GetComponentInParent<HandFanner>();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        // Tell the fanner "I am the active card"
-        if(fanner != null)
-            fanner.SetHoveredIndex(transform.GetSiblingIndex());
+        if (_fanner == null) _fanner = GetComponentInParent<HandFanner>();
+        _fanner?.SetHoveredCard(transform as RectTransform);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        // Tell the fanner "Nobody is active"
-        if(fanner != null)
-            fanner.SetHoveredIndex(-1);
+        _fanner?.ClearHover();
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Left) return;
+
+        var cardView = GetComponent<CardView>();
+        if (cardView == null) return;
+
+        var deckManager = FindAnyObjectByType<DeckManager>();
+        if (deckManager != null)
+            deckManager.RequestPlay(cardView);
     }
 }

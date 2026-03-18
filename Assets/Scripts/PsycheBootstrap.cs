@@ -24,9 +24,10 @@ public static class PsycheBootstrap
         // Start a fresh run the first time we load into a scene.
         existingManager.ResetForNewRun();
 
-        // Ensure there is at least one ResourceHUD.
-        var existingHud = Object.FindFirstObjectByType<ResourceHUD>();
-        if (existingHud == null)
+        // Only create a fallback HUD if neither ResourceHUD nor GameHUD exists.
+        var existingResourceHud = Object.FindFirstObjectByType<ResourceHUD>();
+        var existingGameHud = Object.FindFirstObjectByType<GameHUD>();
+        if (existingResourceHud == null && existingGameHud == null)
         {
             CreateSimpleHud(existingManager);
         }

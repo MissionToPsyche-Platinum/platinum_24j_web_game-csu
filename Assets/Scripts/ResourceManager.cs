@@ -52,6 +52,8 @@ public class ResourceManager : MonoBehaviour
         if (time <= 0) Debug.Log("Mission Failed!");
     }
 
+    public void RefreshForEncounter() { power = 5; UpdateUI(); }
+
     public void ResetForNewRun() { power = 3; budget = 6; time = 15; UpdateUI(); }
     
     public bool CanAfford(int p, int b, int t) => power >= p && budget >= b && time >= t;
