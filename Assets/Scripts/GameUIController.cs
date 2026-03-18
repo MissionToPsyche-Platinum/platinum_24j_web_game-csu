@@ -6,8 +6,8 @@ using TMPro;
 /// <summary>
 /// Master UI controller for the main game scene.
 /// Wires together GameHUD, EncounterPanel, pile counters, and the End Turn button.
-/// Other game systems (deck manager, encounter manager) should call into this controller
-/// rather than touching UI components directly.
+/// Subscribes to backend events (ResourceManager, DeckManager, EncounterManager)
+/// so the UI updates automatically when cards are played or turns advance.
 /// </summary>
 public class GameUIController : MonoBehaviour
 {
@@ -29,14 +29,9 @@ public class GameUIController : MonoBehaviour
     /// <summary>Subscribe to this to receive End Turn notifications.</summary>
     public UnityEvent onEndTurn = new UnityEvent();
 
-    // -----------------------------------------------------------------------
-    // Internal state (mirrors ResourceManager starting values from design doc)
-    // -----------------------------------------------------------------------
-    private int _power  = 3;
-    private int _budget = 6;
-    private int _time   = 15;
-    private int _floor  = 1;
-    private int _turn   = 1;
+    // Cached references to singletons
+    private DeckManager _deckManager;
+    private EncounterManager _encounterManager;
 
     private void Awake()
     {
@@ -46,15 +41,101 @@ public class GameUIController : MonoBehaviour
 
     private void Start()
     {
-        RefreshHUD();
-        UpdateDeckCount(10);    // Starting deck size from design doc
-        UpdateDiscardCount(0);
+        // Find singletons
+        _deckManager = FindAnyObjectByType<DeckManager>();
+        _encounterManager = EncounterManager.Instance;
+
+        // Subscribe to ResourceManager events → update HUD
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourcesChanged += OnResourcesChanged;
+
+        // Subscribe to DeckManager events → update pile counts + feedback
+        if (_deckManager != null)
+        {
+            _deckManager.OnHandChanged += OnHandChanged;
+            _deckManager.OnCardPlayed += OnCardPlayed;
+        }
+
+        // Subscribe to EncounterManager events → update encounter panel
+        if (_encounterManager != null)
+        {
+            _encounterManager.OnEncounterStarted += OnEncounterStarted;
+            _encounterManager.OnProgressChanged += OnProgressChanged;
+            _encounterManager.OnTurnAdvanced += OnTurnAdvanced;
+            _encounterManager.OnEncounterComplete += OnEncounterComplete;
+        }
+
+        // Initial UI state from current values
+        RefreshAllUI();
     }
 
     private void OnDestroy()
     {
         if (endTurnButton != null)
             endTurnButton.onClick.RemoveListener(HandleEndTurn);
+
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourcesChanged -= OnResourcesChanged;
+
+        if (_deckManager != null)
+        {
+            _deckManager.OnHandChanged -= OnHandChanged;
+            _deckManager.OnCardPlayed -= OnCardPlayed;
+        }
+
+        if (_encounterManager != null)
+        {
+            _encounterManager.OnEncounterStarted -= OnEncounterStarted;
+            _encounterManager.OnProgressChanged -= OnProgressChanged;
+            _encounterManager.OnTurnAdvanced -= OnTurnAdvanced;
+            _encounterManager.OnEncounterComplete -= OnEncounterComplete;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Event handlers — backend → frontend
+    // -----------------------------------------------------------------------
+
+    private void OnResourcesChanged(int power, int budget, int time)
+    {
+        hudPanel?.UpdateResources(power, budget, time);
+    }
+
+    private void OnHandChanged()
+    {
+        if (_deckManager != null)
+        {
+            UpdateDeckCount(_deckManager.DeckCount);
+            UpdateDiscardCount(_deckManager.DiscardCount);
+        }
+    }
+
+    private void OnCardPlayed(CardData card)
+    {
+        Debug.Log($"[GameUIController] Card played: {card.cardName}");
+    }
+
+    private void OnEncounterStarted(string type, string objective, int current, int turnLimit)
+    {
+        if (_encounterManager != null)
+            encounterPanel?.SetEncounter(type, objective, current, _encounterManager.TargetProgress, turnLimit);
+    }
+
+    private void OnProgressChanged(int current, int max)
+    {
+        encounterPanel?.UpdateProgress(current, max);
+    }
+
+    private void OnTurnAdvanced(int turn)
+    {
+        encounterPanel?.SetTurn(turn);
+    }
+
+    private void OnEncounterComplete(bool success)
+    {
+        string result = success ? "VICTORY!" : "DEFEAT!";
+        Debug.Log($"[GameUIController] Encounter result: {result}");
+        // TODO: show victory/defeat overlay
     }
 
     // -----------------------------------------------------------------------
@@ -64,17 +145,13 @@ public class GameUIController : MonoBehaviour
     /// <summary>Updates the resource HUD. Call after any resource change.</summary>
     public void UpdateResources(int power, int budget, int time)
     {
-        _power  = power;
-        _budget = budget;
-        _time   = time;
-        RefreshHUD();
+        hudPanel?.UpdateResources(power, budget, time);
     }
 
     /// <summary>Sets the current floor and refreshes the floor indicator.</summary>
     public void SetFloor(int floor)
     {
-        _floor = floor;
-        hudPanel?.SetFloor(_floor, 4);
+        hudPanel?.SetFloor(floor, 4);
     }
 
     /// <summary>Updates the deck pile counter label.</summary>
@@ -114,17 +191,42 @@ public class GameUIController : MonoBehaviour
     // Internal helpers
     // -----------------------------------------------------------------------
 
-    private void RefreshHUD()
+    private void RefreshAllUI()
     {
-        hudPanel?.UpdateResources(_power, _budget, _time);
-        hudPanel?.SetFloor(_floor, 4);
+        // Resources
+        if (ResourceManager.Instance != null)
+            hudPanel?.UpdateResources(
+                ResourceManager.Instance.Power,
+                ResourceManager.Instance.Budget,
+                ResourceManager.Instance.TimeRemaining);
+        else
+            hudPanel?.UpdateResources(3, 6, 15); // Design doc defaults
+
+        hudPanel?.SetFloor(1, 4);
+
+        // Pile counts
+        if (_deckManager != null)
+        {
+            UpdateDeckCount(_deckManager.DeckCount);
+            UpdateDiscardCount(_deckManager.DiscardCount);
+        }
+        else
+        {
+            UpdateDeckCount(10);
+            UpdateDiscardCount(0);
+        }
     }
 
     private void HandleEndTurn()
     {
-        _turn++;
-        encounterPanel?.SetTurn(_turn);
-        Debug.Log($"[GameUIController] End Turn → Turn {_turn}");
+        // Delegate to EncounterManager for turn logic
+        if (_encounterManager != null)
+        {
+            _encounterManager.AdvanceTurn();
+        }
+
+        Debug.Log($"[GameUIController] End Turn clicked");
         onEndTurn?.Invoke();
     }
 }
+
