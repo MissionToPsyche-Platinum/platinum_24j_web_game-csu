@@ -9,15 +9,18 @@ public class CardData : ScriptableObject
     public CardType type;
 
     [Header("Costs")]
-    public int powerCost;
-    public int budgetCost;
-    public int timeCost;
+    public int costPower;
+    public int costBudget;
+    public int costTime;
 
     [Header("Effects")]
     public string description;
     public int effectValue;
     public int dataValue; // Used for Instrument cards to track data collected
     public Sprite cardArt;
+
+    public enum EffectType { None, GainPower, GainBudget, GainTime }
+    public EffectType effectType;
     
     public enum Rarity { Common, Uncommon, Rare }
     public Rarity rarity;
