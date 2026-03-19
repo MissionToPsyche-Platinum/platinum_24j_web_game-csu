@@ -4,7 +4,7 @@ using TMPro;
 
 /// <summary>
 /// Top HUD bar: displays Power, Budget, Time resources and the current floor.
-/// Call UpdateResources() and SetFloor() from GameUIController or ResourceManager.
+/// Subscribes to ResourceManager.OnResourcesChanged for live updates.
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
@@ -35,15 +35,38 @@ public class GameHUD : MonoBehaviour
 
     private void Start()
     {
-        // Show starting values from the design doc
-        UpdateResources(3, 6, 15);
+        // Subscribe to ResourceManager for live updates
+        if (ResourceManager.Instance != null)
+        {
+            ResourceManager.Instance.OnResourcesChanged += OnResourcesChanged;
+            // Show current values
+            UpdateResources(ResourceManager.Instance.Power,
+                            ResourceManager.Instance.Budget,
+                            ResourceManager.Instance.TimeRemaining);
+        }
+        else
+        {
+            // Fallback to design doc defaults if no ResourceManager yet
+            UpdateResources(3, 6, 15);
+        }
         SetFloor(1, 4);
+    }
+
+    private void OnDestroy()
+    {
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourcesChanged -= OnResourcesChanged;
+    }
+
+    private void OnResourcesChanged(int power, int budget, int time)
+    {
+        UpdateResources(power, budget, time);
     }
 
     /// <summary>
     /// Refreshes all three resource labels with colour-coded warnings.
     /// </summary>
-public void UpdateResources(int power, int budget, int time)
+    public void UpdateResources(int power, int budget, int time)
     {
         if (powerText  != null) { powerText.text  = $"PWR  {power}";  powerText.color  = power  <= powerWarning  ? warningColour : normalColour; }
         if (budgetText != null) { budgetText.text = $"BDG  {budget}"; budgetText.color = budget <= budgetWarning ? warningColour : normalColour; }
@@ -65,3 +88,4 @@ public void UpdateResources(int power, int budget, int time)
             floorText.text = $"Floor {current} / {total}";
     }
 }
+
