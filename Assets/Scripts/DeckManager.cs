@@ -12,6 +12,7 @@ using TMPro;
 /// </summary>
 public class DeckManager : MonoBehaviour
 {
+    public Transform handTransform;
     [Header("References")]
     [Tooltip("Parent for hand cards (e.g. Hand_Zone or the GameObject with CardHandLayout).")]
     public Transform handParent;
