@@ -187,13 +187,15 @@ public class DeckManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>Called by CardView when player clicks to play.</summary>
-    public void RequestPlay(CardView view)
+    /// <summary>Called by CardView / drop zone when the player plays a card.</summary>
+    /// <returns>True if the card was played and resources were spent.</returns>
+    public bool RequestPlay(CardView view)
     {
-        if (view == null || view.CardData == null) return;
+        if (view == null || view.CardData == null) return false;
         int index = _handViews.IndexOf(view.gameObject);
         if (index >= 0)
-            TryPlayCard(index);
+            return TryPlayCard(index);
+        return false;
     }
 
     // -----------------------------------------------------------------------

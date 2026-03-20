@@ -19,10 +19,9 @@ public static class PsycheBootstrap
             var go = new GameObject("ResourceManager");
             existingManager = go.AddComponent<ResourceManager>();
             Object.DontDestroyOnLoad(go);
+            // Newly created manager only: apply default run values and push first UI tick.
+            existingManager.ResetForNewRun();
         }
-
-        // Start a fresh run the first time we load into a scene.
-        existingManager.ResetForNewRun();
 
         // Only create a fallback HUD if neither ResourceHUD nor GameHUD exists.
         var existingResourceHud = Object.FindFirstObjectByType<ResourceHUD>();
