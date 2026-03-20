@@ -54,7 +54,14 @@ public class ResourceManager : MonoBehaviour
 
     public void RefreshForEncounter() { power = 5; UpdateUI(); }
 
-    public void ResetForNewRun() { power = 3; budget = 6; time = 15; UpdateUI(); }
+    /// <summary>Reset run resources to defaults (or override for custom starts / menu).</summary>
+    public void ResetForNewRun(int startPower = 3, int startBudget = 6, int startTime = 15)
+    {
+        power = startPower;
+        budget = startBudget;
+        time = startTime;
+        UpdateUI();
+    }
     
     public bool CanAfford(int p, int b, int t) => power >= p && budget >= b && time >= t;
 

@@ -35,6 +35,10 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         if (eventData.button != PointerEventData.InputButton.Left) return;
 
+        var drag = GetComponent<CardDragHandler>();
+        if (drag != null && drag.DidDrag)
+            return;
+
         var cardView = GetComponent<CardView>();
         if (cardView == null) return;
 
