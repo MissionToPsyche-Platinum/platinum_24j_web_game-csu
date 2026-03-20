@@ -12,7 +12,6 @@ using TMPro;
 /// </summary>
 public class DeckManager : MonoBehaviour
 {
-    public Transform handTransform;
     [Header("References")]
     [Tooltip("Parent for hand cards (e.g. Hand_Zone or the GameObject with CardHandLayout).")]
     public Transform handParent;
@@ -41,18 +40,18 @@ public class DeckManager : MonoBehaviour
     private readonly List<GameObject> _handViews = new List<GameObject>();
 
     /// <summary>Card templates for random Draw Phase, matching the design doc starting deck.</summary>
-    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, CardData.CardCategory cat)[] RandomCardTemplates =
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, CardData.CardCategory cat, string art)[] RandomCardTemplates =
     {
-        ("Solar Array Deploy",      "Gain 3 Power",             0, 0, 0, CardData.EffectType.GainPower,         3, CardData.CardCategory.Resource),
-        ("Budget Request",          "Gain 3 Budget",            0, 0, 1, CardData.EffectType.GainBudget,        3, CardData.CardCategory.Resource),
-        ("Mission Extension",       "Gain 5 Time",              0, 3, 0, CardData.EffectType.GainTime,          5, CardData.CardCategory.Resource),
-        ("Multispectral Imager",    "Collect 2 Surface data",   2, 0, 1, CardData.EffectType.CollectSurface,    2, CardData.CardCategory.Instrument),
-        ("Gamma-Ray Spectrometer",  "Collect 3 Elemental data", 3, 0, 2, CardData.EffectType.CollectElemental,  3, CardData.CardCategory.Instrument),
-        ("Magnetometer",            "Collect 2 Magnetic data",  2, 0, 2, CardData.EffectType.CollectMagnetic,   2, CardData.CardCategory.Instrument),
-        ("X-band Radio",            "Collect 3 Gravity data",   1, 0, 3, CardData.EffectType.CollectGravity,    3, CardData.CardCategory.Instrument),
-        ("Trajectory Correction",   "Adjust orbital phase",     2, 1, 0, CardData.EffectType.AdjustOrbit,       1, CardData.CardCategory.Maneuver),
-        ("Compositional Analysis",  "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis),
-        ("Structural Study",        "3 Gravity + 2 Surface → Interior",      0, 1, 2, CardData.EffectType.InteriorConclusion,    0, CardData.CardCategory.Analysis),
+        ("Solar Array Deploy",      "Gain 3 Power",             0, 0, 0, CardData.EffectType.GainPower,         3, CardData.CardCategory.Resource,   "CardArt/solar array deploy"),
+        ("Budget Request",          "Gain 3 Budget",            0, 0, 1, CardData.EffectType.GainBudget,        3, CardData.CardCategory.Resource,   "CardArt/budget request card"),
+        ("Mission Extension",       "Gain 5 Time",              0, 3, 0, CardData.EffectType.GainTime,          5, CardData.CardCategory.Resource,   "CardArt/mission extension"),
+        ("Multispectral Imager",    "Collect 2 Surface data",   2, 0, 1, CardData.EffectType.CollectSurface,    2, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
+        ("Gamma-Ray Spectrometer",  "Collect 3 Elemental data", 3, 0, 2, CardData.EffectType.CollectElemental,  3, CardData.CardCategory.Instrument, "CardArt/Gamma-Ray & Neutron Spectrometer"),
+        ("Magnetometer",            "Collect 2 Magnetic data",  2, 0, 2, CardData.EffectType.CollectMagnetic,   2, CardData.CardCategory.Instrument, "CardArt/Magnetometer"),
+        ("X-band Radio",            "Collect 3 Gravity data",   1, 0, 3, CardData.EffectType.CollectGravity,    3, CardData.CardCategory.Instrument, "CardArt/X-band Radio"),
+        ("Trajectory Correction",   "Adjust orbital phase",     2, 1, 0, CardData.EffectType.AdjustOrbit,       1, CardData.CardCategory.Maneuver,   "CardArt/Trajectory Correction"),
+        ("Compositional Analysis",  "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"),
+        ("Structural Study",        "3 Gravity + 2 Surface → Interior",      0, 1, 2, CardData.EffectType.InteriorConclusion,    0, CardData.CardCategory.Analysis, "CardArt/Structural Study"),
     };
 
     // --- Public properties ---
@@ -376,17 +375,18 @@ public class DeckManager : MonoBehaviour
     {
         _deck.Clear();
         for (int i = 0; i < 4; i++)
-            _deck.Add(CreateRuntimeCard("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, CardData.CardCategory.Resource));
+            _deck.Add(CreateRuntimeCard("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, CardData.CardCategory.Resource, "CardArt/solar array deploy"));
         for (int i = 0; i < 2; i++)
-            _deck.Add(CreateRuntimeCard("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, CardData.CardCategory.Resource));
+            _deck.Add(CreateRuntimeCard("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, CardData.CardCategory.Resource, "CardArt/budget request card"));
         for (int i = 0; i < 2; i++)
-            _deck.Add(CreateRuntimeCard("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, CardData.CardCategory.Instrument));
-        _deck.Add(CreateRuntimeCard("Trajectory Correction", "Adjust orbital phase", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, CardData.CardCategory.Maneuver));
-        _deck.Add(CreateRuntimeCard("Compositional Analysis", "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis));
+            _deck.Add(CreateRuntimeCard("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, CardData.CardCategory.Instrument, "CardArt/multispectral imager"));
+        _deck.Add(CreateRuntimeCard("Trajectory Correction", "Adjust orbital phase", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"));
+        _deck.Add(CreateRuntimeCard("Compositional Analysis", "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"));
     }
 
     private static CardData CreateRuntimeCard(string name, string desc, int p, int b, int t,
-        CardData.EffectType effect, int value, CardData.CardCategory category = CardData.CardCategory.Resource)
+        CardData.EffectType effect, int value, CardData.CardCategory category = CardData.CardCategory.Resource,
+        string artResourcePath = null)
     {
         var card = ScriptableObject.CreateInstance<CardData>();
         card.cardName = name;
@@ -397,6 +397,19 @@ public class DeckManager : MonoBehaviour
         card.effectType = effect;
         card.effectValue = value;
         card.category = category;
+
+        if (!string.IsNullOrEmpty(artResourcePath))
+        {
+            var sprite = Resources.Load<Sprite>(artResourcePath);
+            if (sprite == null)
+            {
+                var tex = Resources.Load<Texture2D>(artResourcePath);
+                if (tex != null)
+                    sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            }
+            card.cardArt = sprite;
+        }
+
         return card;
     }
 
@@ -405,7 +418,7 @@ public class DeckManager : MonoBehaviour
     {
         int idx = UnityEngine.Random.Range(0, RandomCardTemplates.Length);
         var tmpl = RandomCardTemplates[idx];
-        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat);
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art);
     }
 
     // -----------------------------------------------------------------------

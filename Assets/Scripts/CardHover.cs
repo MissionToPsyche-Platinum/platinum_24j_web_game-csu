@@ -26,6 +26,11 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         _fanner?.ClearHover();
     }
 
+    private void OnDisable()
+    {
+        _fanner?.ClearHover();
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Left) return;

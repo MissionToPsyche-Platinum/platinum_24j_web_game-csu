@@ -1133,19 +1133,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9fb23cf85e84e144fbf33eab3c45b8bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandFanner
-  useSplineLayout: 0
-  handSpline: {fileID: 1602976804}
-  cardSpacing: 124
-  maxFanWidth: 660
-  arcHeight: 46
-  maxRotation: 8.5
-  horizontalOffset: -12
-  baseCardScale: 1.03
-  verticalOffset: -12
-  hoverLift: 112
-  hoverScale: 1.16
-  neighborSpread: 16
-  lerpSpeed: 18
+  handSpline: {fileID: 0}
+  arcWidth: 600
+  arcHeight: 40
+  splineUsage: 0.8
+  baseCardScale: 1.1
+  verticalOffset: 60
+  hoverLift: 140
+  hoverScale: 1.25
+  neighborSpread: 10
+  lerpSpeed: 14
 --- !u!224 &1297748359 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7983269829161745920, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
@@ -1188,138 +1185,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2685874855406775436, guid: b2ea6c9168a920642aab1687081a16d0, type: 3}
   m_PrefabInstance: {fileID: 6487215443807727711}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1602976802
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1602976803}
-  - component: {fileID: 1602976804}
-  m_Layer: 0
-  m_Name: HandSpline
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1602976803
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1602976802}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -53.321594, y: -30, z: 3390.0972}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1297748359}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1602976804
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1602976802}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dab5c7d4c32e743048dfca98e2d5914f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Splines::UnityEngine.Splines.SplineContainer
-  m_Spline:
-    m_EditModeType: 1
-    m_Knots: []
-    m_MetaData: []
-    m_Closed: 0
-    m_IntData:
-      m_Data: []
-    m_FloatData:
-      m_Data: []
-    m_Float4Data:
-      m_Data: []
-    m_ObjectData:
-      m_Data: []
-  m_Splines:
-  - m_EditModeType: 1
-    m_Knots:
-    - Position:
-        x: 0
-        y: 0
-        z: 0
-      TangentIn:
-        x: -0
-        y: -0
-        z: -859.0829
-      TangentOut:
-        x: 0
-        y: 0
-        z: 859.0829
-      Rotation:
-        value:
-          x: 1.07662476e-10
-          y: 0.09308125
-          z: -1.0065054e-11
-          w: 0.99565846
-    - Position:
-        x: 1592.3469
-        y: -0.0000018578858
-        z: 8441.965
-      TangentIn:
-        x: -0
-        y: -0
-        z: -160.32042
-      TangentOut:
-        x: 0
-        y: 0
-        z: 154.73752
-      Rotation:
-        value:
-          x: -6.511865e-10
-          y: 0.75134706
-          z: 3.3888414e-10
-          w: 0.6599073
-    - Position:
-        x: 1013.60284
-        y: 0.0000011214534
-        z: 459.99512
-      TangentIn:
-        x: -0
-        y: -0
-        z: -800.29236
-      TangentOut:
-        x: 0
-        y: 0
-        z: 800.29236
-      Rotation:
-        value:
-          x: 6.734941e-12
-          y: 0.9993453
-          z: 1.8601883e-10
-          w: -0.036181986
-    m_MetaData:
-    - Mode: 0
-      Tension: 0.5
-    - Mode: 0
-      Tension: 0.5
-    - Mode: 0
-      Tension: 0.5
-    m_Closed: 0
-    m_IntData:
-      m_Data: []
-    m_FloatData:
-      m_Data: []
-    m_Float4Data:
-      m_Data: []
-    m_ObjectData:
-      m_Data: []
-  m_Knots:
-    m_KnotsLink: []
 --- !u!1 &1652004277
 GameObject:
   m_ObjectHideFlags: 0
@@ -2027,9 +1892,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6596630225973935440, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
       insertIndex: 0
       addedObject: {fileID: 1143830660}
-    - targetCorrespondingSourceObject: {fileID: 7983269829161745920, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
-      insertIndex: 0
-      addedObject: {fileID: 1602976803}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 3751334845631352114, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
       insertIndex: -1
