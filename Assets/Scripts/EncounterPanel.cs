@@ -24,9 +24,56 @@ public class EncounterPanel : MonoBehaviour
 
     private void Start()
     {
-        // Default placeholder encounter shown at startup
-        SetEncounter("DATA COLLECTION", "Collect 5 Surface data", 0, 5, 8);
-        SetTurn(1);
+        // Automatically find UI elements if they aren't assigned in the inspector
+        AutoBindUI();
+
+        // Subscribe to EncounterManager events so the UI automatically updates!
+        if (EncounterManager.Instance != null)
+        {
+            EncounterManager.Instance.OnEncounterStarted += HandleEncounterStarted;
+            EncounterManager.Instance.OnProgressChanged += UpdateProgress;
+            EncounterManager.Instance.OnTurnAdvanced += SetTurn;
+
+            // Initialize with current state
+            HandleEncounterStarted(EncounterManager.Instance.EncounterType, 
+                                   EncounterManager.Instance.ObjectiveDesc, 
+                                   EncounterManager.Instance.CurrentProgress, 
+                                   EncounterManager.Instance.TargetProgress);
+            SetTurn(EncounterManager.Instance.CurrentTurn);
+        }
+    }
+
+    private void AutoBindUI()
+    {
+        if (encounterTypeText == null) encounterTypeText = transform.Find("EncounterTypeText")?.GetComponent<TMP_Text>();
+        if (objectiveText == null) objectiveText = transform.Find("ObjectiveText")?.GetComponent<TMP_Text>();
+        if (progressText == null) progressText = transform.Find("ProgressText")?.GetComponent<TMP_Text>();
+        if (turnLimitText == null) turnLimitText = transform.Find("TurnLimitText")?.GetComponent<TMP_Text>();
+        
+        // Find the progress fill image. It might be under ProgressBarBg/ProgressFill
+        if (progressFill == null) 
+        {
+            Transform bg = transform.Find("ProgressBarBg");
+            if (bg != null) progressFill = bg.Find("ProgressFill")?.GetComponent<Image>() ?? bg.GetComponent<Image>();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (EncounterManager.Instance != null)
+        {
+            EncounterManager.Instance.OnEncounterStarted -= HandleEncounterStarted;
+            EncounterManager.Instance.OnProgressChanged -= UpdateProgress;
+            EncounterManager.Instance.OnTurnAdvanced -= SetTurn;
+        }
+    }
+
+    private void HandleEncounterStarted(string type, string objective, int current, int max)
+    {
+        int turnLimit = 8; // Default, you can retrieve actual turn limit if needed
+        if (EncounterManager.Instance != null) turnLimit = EncounterManager.Instance.MaxTurns;
+        
+        SetEncounter(type, objective, current, max, turnLimit);
     }
 
     /// <summary>

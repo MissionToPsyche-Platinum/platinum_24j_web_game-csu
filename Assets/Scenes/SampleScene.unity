@@ -2752,6 +2752,66 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 11500000, guid: ef70f5fc52ef446f8a0448f88e5fad5d, type: 3}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Target
+      value: 
+      objectReference: {fileID: 11500000, guid: 92e7ba1744274479a8353fc9cd2a64e9, type: 3}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: set_name
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: set_name
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: UnityEditor.MonoScript, UnityEditor.CoreModule
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
+      value: UnityEditor.MonoScript, UnityEditor.CoreModule
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_StringArgument
+      value: AdvanceTurn()
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_StringArgument
+      value: EndTurn()
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 7916603939374528575, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 7983269829161745920, guid: 083b7f02baa813247908b44aa7ca62d9, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
