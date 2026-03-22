@@ -96,7 +96,15 @@ public class CharacterAnimator2D : MonoBehaviour
         // 2. Fire the projectile exactly from our peak position!
         if (projectilePrefab != null && attackTarget != null)
         {
-            StartCoroutine(ThrowProjectileRoutine(peakPos, attackTarget.localPosition));
+            try
+            {
+                // This will safely try to start the routine, but if the projectile was a deleted scene object, it catches the error!
+                StartCoroutine(ThrowProjectileRoutine(peakPos, attackTarget.localPosition));
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("Project Prefab is missing or was deleted! Make sure you assign the Prefab from the Project folder, not the Hierarchy!");
+            }
         }
 
         // 3. Return to start position
