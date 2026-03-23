@@ -80,9 +80,21 @@ public class EncounterManager : MonoBehaviour
 
     private void Start()
     {
-        // Find DeckManager if not assigned
+        // Find DeckManager if not assigned (prefer human deck if an AI deck exists)
         if (deckManager == null)
-            deckManager = FindAnyObjectByType<DeckManager>();
+        {
+            var all = FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
+            foreach (var d in all)
+            {
+                if (d != null && !d.UsesAiResourceWallet)
+                {
+                    deckManager = d;
+                    break;
+                }
+            }
+            if (deckManager == null && all.Length > 0)
+                deckManager = all[0];
+        }
 
         // Start a default encounter
         StartEncounter(_encounterType, _objectiveDesc, _targetProgress, _maxTurns);

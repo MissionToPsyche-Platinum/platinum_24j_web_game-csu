@@ -16,9 +16,13 @@ public class CardView : MonoBehaviour
     // This is what DeckManager calls to link the card to the UI
     public CardData CardData { get; private set; }
 
+    /// <summary>Deck that spawned this card (avoids wrong <see cref="DeckManager"/> when AI deck exists).</summary>
+    public DeckManager OwningDeck { get; private set; }
+
     public void Bind(CardData data, DeckManager manager) 
     {
         this.CardData = data;
+        OwningDeck = manager;
         
         // Update the UI elements
         if (title != null) title.text = data.cardName;

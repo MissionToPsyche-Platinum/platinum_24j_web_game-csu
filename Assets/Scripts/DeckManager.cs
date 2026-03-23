@@ -34,6 +34,13 @@ public class DeckManager : MonoBehaviour
     [Tooltip("Number of random cards to generate and place in hand at game start.")]
     public int drawPhaseCardCount = 5;
 
+    [Header("Optional: AI opponent deck")]
+    [Tooltip("When set, this deck spends Power/Budget/Time and applies Gain* card effects on the AI wallet instead of ResourceManager.")]
+    [SerializeField] private OpponentAIController aiResourceWallet;
+
+    /// <summary>True when this deck is wired as the computer's deck (uses <see cref="aiResourceWallet"/>).</summary>
+    public bool UsesAiResourceWallet => aiResourceWallet != null;
+
     private readonly List<CardData> _deck = new List<CardData>();
     private readonly List<CardData> _hand = new List<CardData>();
     private readonly List<CardData> _discard = new List<CardData>();
@@ -147,21 +154,34 @@ public class DeckManager : MonoBehaviour
     {
         if (handIndex < 0 || handIndex >= _hand.Count) return false;
         var card = _hand[handIndex];
-        if (ResourceManager.Instance == null) return false;
+        if (UsesAiResourceWallet)
+        {
+            if (aiResourceWallet == null) return false;
+        }
+        else if (ResourceManager.Instance == null)
+            return false;
 
         // Adjust power cost if ReducePowerCosts is active this turn
         int effectivePowerCost = card.costPower;
         if (EncounterManager.Instance != null && EncounterManager.Instance.ReducePowerCostsThisTurn && effectivePowerCost > 0)
             effectivePowerCost = Mathf.Max(0, effectivePowerCost - 1);
 
-        if (!ResourceManager.Instance.CanAfford(effectivePowerCost, card.costBudget, card.costTime))
+        if (UsesAiResourceWallet)
         {
-            ShowFeedback("Not enough resources!");
-            return false;
+            if (!aiResourceWallet.CanAfford(effectivePowerCost, card.costBudget, card.costTime))
+                return false;
+            aiResourceWallet.TrySpend(effectivePowerCost, card.costBudget, card.costTime);
         }
+        else
+        {
+            if (!ResourceManager.Instance.CanAfford(effectivePowerCost, card.costBudget, card.costTime))
+            {
+                ShowFeedback("Not enough resources!");
+                return false;
+            }
 
-        // Spend resources
-        ResourceManager.Instance.TrySpend(effectivePowerCost, card.costBudget, card.costTime);
+            ResourceManager.Instance.TrySpend(effectivePowerCost, card.costBudget, card.costTime);
+        }
 
         // Apply the card's effect
         ApplyEffect(card);
@@ -212,13 +232,16 @@ public class DeckManager : MonoBehaviour
         {
             // === Resource effects ===
             case CardData.EffectType.GainPower:
-                rm?.AddPower(card.effectValue);
+                if (UsesAiResourceWallet) aiResourceWallet?.AddPower(card.effectValue);
+                else rm?.AddPower(card.effectValue);
                 break;
             case CardData.EffectType.GainBudget:
-                rm?.AddBudget(card.effectValue);
+                if (UsesAiResourceWallet) aiResourceWallet?.AddBudget(card.effectValue);
+                else rm?.AddBudget(card.effectValue);
                 break;
             case CardData.EffectType.GainTime:
-                rm?.AddTime(card.effectValue);
+                if (UsesAiResourceWallet) aiResourceWallet?.AddTime(card.effectValue);
+                else rm?.AddTime(card.effectValue);
                 break;
             case CardData.EffectType.ReducePowerCosts:
                 if (em != null) em.ReducePowerCostsThisTurn = true;

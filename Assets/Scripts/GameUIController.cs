@@ -22,6 +22,10 @@ public class GameUIController : MonoBehaviour
     [Header("End Turn Button")]
     [SerializeField] private Button endTurnButton;
 
+    [Header("Turn flow (Human vs. AI)")]
+    [Tooltip("When set, End Turn runs AI turn then EncounterManager.AdvanceTurn. Leave empty for legacy solo flow.")]
+    [SerializeField] private GamePhaseController gamePhaseController;
+
     [Header("Play Zone")]
     [SerializeField] private GameObject playZone;   // Drop target for played cards
 
@@ -41,8 +45,8 @@ public class GameUIController : MonoBehaviour
 
     private void Start()
     {
-        // Find singletons
-        _deckManager = FindAnyObjectByType<DeckManager>();
+        // Prefer the human deck when two DeckManagers exist (player + AI).
+        _deckManager = FindPrimaryPlayerDeckManager();
         _encounterManager = EncounterManager.Instance;
 
         // Subscribe to ResourceManager events → update HUD
@@ -191,6 +195,18 @@ public class GameUIController : MonoBehaviour
     // Internal helpers
     // -----------------------------------------------------------------------
 
+    private static DeckManager FindPrimaryPlayerDeckManager()
+    {
+        var all = Object.FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
+        foreach (var d in all)
+        {
+            if (d != null && !d.UsesAiResourceWallet)
+                return d;
+        }
+
+        return all.Length > 0 ? all[0] : null;
+    }
+
     private void RefreshAllUI()
     {
         // Resources
@@ -219,13 +235,26 @@ public class GameUIController : MonoBehaviour
 
     private void HandleEndTurn()
     {
-        // Delegate to EncounterManager for turn logic
-        if (_encounterManager != null)
+        if (gamePhaseController == null)
+            gamePhaseController = FindAnyObjectByType<GamePhaseController>();
+
+        if (gamePhaseController != null)
         {
-            _encounterManager.AdvanceTurn();
+            gamePhaseController.OnPlayerPressedEndTurn();
+            return;
         }
 
-        Debug.Log($"[GameUIController] End Turn clicked");
+        if (_encounterManager != null)
+            _encounterManager.AdvanceTurn();
+
+        Debug.Log("[GameUIController] End Turn clicked");
+        onEndTurn?.Invoke();
+    }
+
+    /// <summary>Called by <see cref="GamePhaseController"/> after AI + encounter advance so other listeners still get a round-complete signal.</summary>
+    public void NotifyRoundCompletedAfterPhase()
+    {
+        Debug.Log("[GameUIController] Round complete (player + AI)");
         onEndTurn?.Invoke();
     }
 }
