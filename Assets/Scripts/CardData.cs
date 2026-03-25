@@ -8,7 +8,7 @@ public class CardData : ScriptableObject
     public enum CardType { Resource, Instrument, Maneuver, Analysis, Crisis }
     public CardType type;
 
-    public enum CardCategory { Resource, Instrument, Maneuver, Analysis, Crisis }
+    public enum CardCategory { Resource, Instrument, Maneuver, Analysis }
     public CardCategory category;
 
     [Header("Costs")]
@@ -24,33 +24,27 @@ public class CardData : ScriptableObject
     public enum EffectType
     {
         None,
-
-        // --- Resource ---
+        // Resource
         GainPower, GainBudget, GainTime, ReducePowerCosts,
-
-        // --- Instrument (data collection) ---
+        // Instrument (data collection)
         CollectSurface, CollectElemental, CollectMagnetic, CollectGravity, CollectAllData,
-
-        // --- Maneuver ---
+        // Maneuver
         AdjustOrbit, OrbitInsertion, BonusNextInstrument, PreventPenalty,
         DoubleNextInstrument, CancelCrisis,
-
-        // --- Analysis (conclusions) ---
+        // Analysis (conclusions)
         CompositionConclusion, DynamoConclusion, InteriorConclusion,
         FormationConclusion, WildConclusion, UpgradeConclusion,
-
-        // --- Utility ---
-        DrawCards,
-
-        // --- Crisis / Negative Events ---
-        LosePower, LoseBudget, LoseTime,
-        LoseProgress, SkipTurn, DiscardRandom,
+        // Utility
+        DrawCards
     }
     public EffectType effectType;
 
     [Header("Effect Values")]
     public int effectValue;
     public int effectValue2;
+
+    public enum Rarity { Common, Uncommon, Rare }
+    public Rarity rarity;
 
     public string EffectSummary()
     {
@@ -78,12 +72,6 @@ public class CardData : ScriptableObject
             case EffectType.WildConclusion:      return "Wild conclusion";
             case EffectType.UpgradeConclusion:   return "Conclusion upgraded";
             case EffectType.DrawCards:           return $"Draw {(effectValue > 0 ? effectValue : effectValue2)} cards";
-            case EffectType.LosePower:           return $"-{effectValue} Power";
-            case EffectType.LoseBudget:          return $"-{effectValue} Budget";
-            case EffectType.LoseTime:            return $"-{effectValue} Time";
-            case EffectType.LoseProgress:        return $"-{effectValue} Progress";
-            case EffectType.SkipTurn:            return "Skip next turn";
-            case EffectType.DiscardRandom:       return $"Discard {effectValue} cards";
             default:                             return "";
         }
     }

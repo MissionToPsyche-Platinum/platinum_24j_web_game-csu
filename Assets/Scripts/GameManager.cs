@@ -12,12 +12,21 @@ public class GameManager : MonoBehaviour
 
     public static GameManager Instance => _instance;
 
+    [Header("Run State")]
+    [SerializeField] private int currentFloor = 1;
+
     [Header("Transition to next floor")]
     [Tooltip("Time cost when transitioning to the next encounter/floor (deducted from ResourceManager).")]
     [SerializeField] private int timeCostPerFloor = 1;
 
     [Tooltip("Scene name to load as the next encounter. Leave empty to reload the current scene.")]
     [SerializeField] private string nextEncounterSceneName = "";
+
+    // Events
+    public System.Action OnGameLoss;
+    public System.Action OnGameWin;
+
+    public int CurrentFloor => currentFloor;
 
     /// <summary>Delegates to ResourceManager.Budget.</summary>
     public int CurrentBudget => ResourceManager.Instance != null ? ResourceManager.Instance.Budget : 0;
@@ -36,10 +45,34 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    private void Start()
+    {
+        if (ResourceManager.Instance != null)
+        {
+            ResourceManager.Instance.OnMissionFailed += HandleRunFailure;
+        }
+    }
+
     private void OnDestroy()
     {
         if (_instance == this)
+        {
+            if (ResourceManager.Instance != null)
+                ResourceManager.Instance.OnMissionFailed -= HandleRunFailure;
             _instance = null;
+        }
+    }
+
+    private void HandleRunFailure()
+    {
+        Debug.Log("[GameManager] Run Failure Triggered!");
+        OnGameLoss?.Invoke();
+    }
+
+    public void TriggerVictory()
+    {
+        Debug.Log("[GameManager] Run Victory Triggered!");
+        OnGameWin?.Invoke();
     }
 
     /// <summary>Forwards to ResourceManager.</summary>
@@ -57,6 +90,13 @@ public class GameManager : MonoBehaviour
     /// <summary>Subtracts transition time via ResourceManager, then loads the next scene.</summary>
     public void TransitionToNextFloor()
     {
+        currentFloor++;
+        if (currentFloor > 4)
+        {
+            TriggerVictory();
+            return;
+        }
+
         if (ResourceManager.Instance != null)
             ResourceManager.Instance.AddTime(-timeCostPerFloor);
 
@@ -69,6 +109,7 @@ public class GameManager : MonoBehaviour
     /// <summary>Resets run resources on ResourceManager (e.g. new run from menu).</summary>
     public void ResetRun(int startBudget = 6, int startTime = 15, int startPower = 3)
     {
+        currentFloor = 1;
         ResourceManager.Instance?.ResetForNewRun(startPower, startBudget, startTime);
     }
 }

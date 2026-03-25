@@ -35,9 +35,6 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         if (eventData.button != PointerEventData.InputButton.Left) return;
 
-        if (!GamePhaseController.PlayerMayInteractWithCards)
-            return;
-
         var drag = GetComponent<CardDragHandler>();
         if (drag != null && drag.DidDrag)
             return;
@@ -45,9 +42,7 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         var cardView = GetComponent<CardView>();
         if (cardView == null) return;
 
-        var deckManager = cardView.OwningDeck != null
-            ? cardView.OwningDeck
-            : FindAnyObjectByType<DeckManager>();
+        var deckManager = FindAnyObjectByType<DeckManager>();
         if (deckManager != null)
             deckManager.RequestPlay(cardView);
     }

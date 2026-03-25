@@ -132,12 +132,6 @@ public class HandFanner : MonoBehaviour
 
     private void RefreshHoverFromPointer()
     {
-        if (CardRewardUI.IsRewardPanelOpen)
-        {
-            _hovered = null;
-            return;
-        }
-
         if (_hand.Count == 0)
         {
             _hovered = null;

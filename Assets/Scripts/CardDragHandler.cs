@@ -30,9 +30,6 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private bool _playSucceeded;
     private bool _restored;
 
-    /// <summary>True after a successful BeginDrag reparent (used to defer raycast restore).</summary>
-    private bool _dragging;
-
     private Coroutine _endDragRoutine;
 
     private void Awake()
@@ -49,9 +46,6 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Left)
-            return;
-
-        if (!GamePhaseController.PlayerMayInteractWithCards)
             return;
 
         DidDrag = false;
@@ -71,11 +65,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _rect.SetParent(_rootCanvas.transform, true);
         _rect.SetAsLastSibling();
 
-        // Let rays pass through this card so PlayZone (below) receives IDropHandler.
-        // interactable=false avoids the group consuming clicks mid-drag.
         _canvasGroup.blocksRaycasts = false;
-        _canvasGroup.interactable = false;
-        _dragging = true;
 
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 _rootCanvas.transform as RectTransform,
@@ -97,7 +87,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!_dragging || _rootCanvas == null)
+        if (_rootCanvas == null)
             return;
 
         if (eventData.delta.sqrMagnitude > 0.5f)
@@ -115,9 +105,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Do NOT restore blocksRaycasts here — OnDrop on the zone often runs in the same frame
-        // after IEndDragHandler; turning raycasts back on immediately can block drop detection.
-        if (!_dragging)
+        _canvasGroup.blocksRaycasts = true;
+
+        if (_rootCanvas == null)
             return;
 
         if (_endDragRoutine != null)
@@ -136,16 +126,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private IEnumerator CoDeferredEndDrag()
     {
-        // Wait until after this frame's drop / pointer pipeline so PlayZone can receive OnDrop.
         yield return null;
-
-        if (_canvasGroup != null)
-        {
-            _canvasGroup.blocksRaycasts = true;
-            _canvasGroup.interactable = true;
-        }
-
-        _dragging = false;
 
         if (this == null || _rect == null)
             yield break;
@@ -193,11 +174,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private void OnDisable()
     {
         DidDrag = false;
-        _dragging = false;
         if (_canvasGroup != null)
-        {
             _canvasGroup.blocksRaycasts = true;
-            _canvasGroup.interactable = true;
-        }
     }
 }

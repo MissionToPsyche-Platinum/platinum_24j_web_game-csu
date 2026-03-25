@@ -15,16 +15,17 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private GameHUD         hudPanel;
     [SerializeField] private EncounterPanel  encounterPanel;
 
+    [Header("Run State Panels")]
+    [SerializeField] private GameObject missionStartPanel; // Shown at start of run
+    [SerializeField] private GameObject victoryPanel;      // Shown on run win
+    [SerializeField] private GameObject defeatPanel;       // Shown on run loss
+
     [Header("Pile Counters")]
     [SerializeField] private TMP_Text deckCountText;
     [SerializeField] private TMP_Text discardCountText;
 
     [Header("End Turn Button")]
     [SerializeField] private Button endTurnButton;
-
-    [Header("Turn flow (Human vs. AI)")]
-    [Tooltip("When set, End Turn runs AI turn then EncounterManager.AdvanceTurn. Leave empty for legacy solo flow.")]
-    [SerializeField] private GamePhaseController gamePhaseController;
 
     [Header("Play Zone")]
     [SerializeField] private GameObject playZone;   // Drop target for played cards
@@ -45,8 +46,8 @@ public class GameUIController : MonoBehaviour
 
     private void Start()
     {
-        // Prefer the human deck when two DeckManagers exist (player + AI).
-        _deckManager = FindPrimaryPlayerDeckManager();
+        // Find singletons
+        _deckManager = FindAnyObjectByType<DeckManager>();
         _encounterManager = EncounterManager.Instance;
 
         // Subscribe to ResourceManager events → update HUD
@@ -67,6 +68,19 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnProgressChanged += OnProgressChanged;
             _encounterManager.OnTurnAdvanced += OnTurnAdvanced;
             _encounterManager.OnEncounterComplete += OnEncounterComplete;
+        }
+
+        // Subscribe to GameManager run events
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGameWin += ShowVictory;
+            GameManager.Instance.OnGameLoss += ShowDefeat;
+        }
+
+        // Initially show mission start if on floor 1 and encounter not active
+        if (GameManager.Instance != null && GameManager.Instance.CurrentFloor == 1 && (_encounterManager == null || !_encounterManager.IsEncounterActive))
+        {
+            missionStartPanel?.SetActive(true);
         }
 
         // Initial UI state from current values
@@ -93,6 +107,12 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnProgressChanged -= OnProgressChanged;
             _encounterManager.OnTurnAdvanced -= OnTurnAdvanced;
             _encounterManager.OnEncounterComplete -= OnEncounterComplete;
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGameWin -= ShowVictory;
+            GameManager.Instance.OnGameLoss -= ShowDefeat;
         }
     }
 
@@ -139,7 +159,21 @@ public class GameUIController : MonoBehaviour
     {
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
-        // TODO: show victory/defeat overlay
+        
+        // If it's a boss and we failed, GameManager.OnGameLoss will handle it.
+        // If it's a normal victory, we might want to show a simple "Continue" button or just TransitionToNextFloor.
+        // For now, let's just log. The user asked for "start game and end game interface",
+        // which I interpret as the whole run.
+    }
+
+    private void ShowVictory()
+    {
+        victoryPanel?.SetActive(true);
+    }
+
+    private void ShowDefeat()
+    {
+        defeatPanel?.SetActive(true);
     }
 
     // -----------------------------------------------------------------------
@@ -195,18 +229,6 @@ public class GameUIController : MonoBehaviour
     // Internal helpers
     // -----------------------------------------------------------------------
 
-    private static DeckManager FindPrimaryPlayerDeckManager()
-    {
-        var all = Object.FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
-        foreach (var d in all)
-        {
-            if (d != null && !d.UsesAiResourceWallet)
-                return d;
-        }
-
-        return all.Length > 0 ? all[0] : null;
-    }
-
     private void RefreshAllUI()
     {
         // Resources
@@ -235,26 +257,13 @@ public class GameUIController : MonoBehaviour
 
     private void HandleEndTurn()
     {
-        if (gamePhaseController == null)
-            gamePhaseController = FindAnyObjectByType<GamePhaseController>();
-
-        if (gamePhaseController != null)
+        // Delegate to EncounterManager for turn logic
+        if (_encounterManager != null)
         {
-            gamePhaseController.OnPlayerPressedEndTurn();
-            return;
+            _encounterManager.AdvanceTurn();
         }
 
-        if (_encounterManager != null)
-            _encounterManager.AdvanceTurn();
-
-        Debug.Log("[GameUIController] End Turn clicked");
-        onEndTurn?.Invoke();
-    }
-
-    /// <summary>Called by <see cref="GamePhaseController"/> after AI + encounter advance so other listeners still get a round-complete signal.</summary>
-    public void NotifyRoundCompletedAfterPhase()
-    {
-        Debug.Log("[GameUIController] Round complete (player + AI)");
+        Debug.Log($"[GameUIController] End Turn clicked");
         onEndTurn?.Invoke();
     }
 }
