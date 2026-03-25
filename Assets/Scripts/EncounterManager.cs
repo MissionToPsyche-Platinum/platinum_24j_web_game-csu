@@ -135,7 +135,7 @@ public class EncounterManager : MonoBehaviour
     public void AddProgress(int amount)
     {
         if (!_encounterActive) return;
-        _currentProgress = Mathf.Min(_currentProgress + amount, _targetProgress);
+        _currentProgress = Mathf.Clamp(_currentProgress + amount, 0, _targetProgress);
         Debug.Log($"[EncounterManager] Progress: {_currentProgress}/{_targetProgress}");
         OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
 
