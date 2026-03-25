@@ -262,7 +262,7 @@ MonoBehaviour:
   encounterPanel: {fileID: 0}
   deckCountText: {fileID: 0}
   discardCountText: {fileID: 0}
-  endTurnButton: {fileID: 0}
+  endTurnButton: {fileID: 7916603939374528575}
   playZone: {fileID: 0}
   onEndTurn:
     m_PersistentCalls:

@@ -39,8 +39,24 @@ public class GameUIController : MonoBehaviour
 
     private void Awake()
     {
+        if (endTurnButton == null)
+        {
+            foreach (var b in GetComponentsInChildren<Button>(true))
+            {
+                if (b.gameObject.name == "EndTurnButton")
+                {
+                    endTurnButton = b;
+                    break;
+                }
+            }
+        }
+
         if (endTurnButton != null)
+        {
+            // Scene prefab overrides once pointed OnClick at editor MonoScript assets; strip so our handler runs.
+            endTurnButton.onClick.RemoveAllListeners();
             endTurnButton.onClick.AddListener(HandleEndTurn);
+        }
     }
 
     private void Start()

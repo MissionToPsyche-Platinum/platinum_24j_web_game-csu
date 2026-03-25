@@ -3,7 +3,10 @@ using UnityEngine.SceneManagement;
 public static class OptionsNavigation
 {
     public const string DefaultOptionsScene = "Options";
-    public const string DefaultFallbackScene = "SampleScene";
+    public const string DefaultMainMenuScene = "MainMenu";
+
+    /// <summary>Used when no "previous" scene is stored (e.g. opened Options directly in editor).</summary>
+    public const string DefaultFallbackScene = DefaultMainMenuScene;
 
     private static string _previousSceneName;
 
@@ -17,6 +20,14 @@ public static class OptionsNavigation
     {
         string sceneToLoad = string.IsNullOrEmpty(_previousSceneName) ? fallbackScene : _previousSceneName;
         SceneManager.LoadScene(sceneToLoad);
+    }
+
+    public static void LoadMainMenu(string mainMenuSceneName = DefaultMainMenuScene)
+    {
+        if (string.IsNullOrEmpty(mainMenuSceneName))
+            return;
+
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 }
 
