@@ -15,6 +15,11 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private GameHUD         hudPanel;
     [SerializeField] private EncounterPanel  encounterPanel;
 
+    [Header("Run State Panels")]
+    [SerializeField] private GameObject missionStartPanel; // Shown at start of run
+    [SerializeField] private GameObject victoryPanel;      // Shown on run win
+    [SerializeField] private GameObject defeatPanel;       // Shown on run loss
+
     [Header("Pile Counters")]
     [SerializeField] private TMP_Text deckCountText;
     [SerializeField] private TMP_Text discardCountText;
@@ -65,6 +70,19 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnEncounterComplete += OnEncounterComplete;
         }
 
+        // Subscribe to GameManager run events
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGameWin += ShowVictory;
+            GameManager.Instance.OnGameLoss += ShowDefeat;
+        }
+
+        // Initially show mission start if on floor 1 and encounter not active
+        if (GameManager.Instance != null && GameManager.Instance.CurrentFloor == 1 && (_encounterManager == null || !_encounterManager.IsEncounterActive))
+        {
+            missionStartPanel?.SetActive(true);
+        }
+
         // Initial UI state from current values
         RefreshAllUI();
     }
@@ -89,6 +107,12 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnProgressChanged -= OnProgressChanged;
             _encounterManager.OnTurnAdvanced -= OnTurnAdvanced;
             _encounterManager.OnEncounterComplete -= OnEncounterComplete;
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGameWin -= ShowVictory;
+            GameManager.Instance.OnGameLoss -= ShowDefeat;
         }
     }
 
@@ -135,7 +159,21 @@ public class GameUIController : MonoBehaviour
     {
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
-        // TODO: show victory/defeat overlay
+        
+        // If it's a boss and we failed, GameManager.OnGameLoss will handle it.
+        // If it's a normal victory, we might want to show a simple "Continue" button or just TransitionToNextFloor.
+        // For now, let's just log. The user asked for "start game and end game interface",
+        // which I interpret as the whole run.
+    }
+
+    private void ShowVictory()
+    {
+        victoryPanel?.SetActive(true);
+    }
+
+    private void ShowDefeat()
+    {
+        defeatPanel?.SetActive(true);
     }
 
     // -----------------------------------------------------------------------

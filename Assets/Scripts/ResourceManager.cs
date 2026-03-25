@@ -5,6 +5,7 @@ public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
     public System.Action<int, int, int> OnResourcesChanged;
+    public System.Action OnMissionFailed;
 
     [Header("Resource Values")]
     public int power = 3;
@@ -41,18 +42,22 @@ public class ResourceManager : MonoBehaviour
     public void AddTime(int amount) 
     {
         time += amount;
+        if (time <= 0)
+        {
+            time = 0;
+            OnMissionFailed?.Invoke();
+        }
         UpdateUI();
     }
     // ------------------------------------------
     public void EndTurn() 
     {
-        time -= 1; 
-        power = 5; 
+        AddTime(-1); // Use AddTime to trigger failure check
+        power = 3;   // Reset to 3 as per GDD
         UpdateUI();
-        if (time <= 0) Debug.Log("Mission Failed!");
     }
 
-    public void RefreshForEncounter() { power = 5; UpdateUI(); }
+    public void RefreshForEncounter() { power = 3; UpdateUI(); }
 
     /// <summary>Reset run resources to defaults (or override for custom starts / menu).</summary>
     public void ResetForNewRun(int startPower = 3, int startBudget = 6, int startTime = 15)
@@ -68,6 +73,11 @@ public class ResourceManager : MonoBehaviour
     public void TrySpend(int p, int b, int t)
     {
         power -= p; budget -= b; time -= t;
+        if (time <= 0)
+        {
+            time = 0;
+            OnMissionFailed?.Invoke();
+        }
         UpdateUI();
     }
 }

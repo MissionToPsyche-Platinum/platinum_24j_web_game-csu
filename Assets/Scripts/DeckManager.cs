@@ -90,25 +90,44 @@ public class DeckManager : MonoBehaviour
             _deck.Clear();
             foreach (var c in startingDeck)
                 if (c != null) _deck.Add(c);
-            ShuffleDeck();
-            Draw(Mathf.Min(drawPhaseCardCount, _deck.Count));
         }
         else
         {
-            // Draw Phase: generate N random cards and place in hand
+            // Initializing GDD Starting Deck (10 cards)
             _deck.Clear();
-            int count = Mathf.Clamp(drawPhaseCardCount, 1, 20);
-            for (int i = 0; i < count; i++)
-                _deck.Add(CreateRandomRuntimeCard());
-            ShuffleDeck();
-            Draw(count);
+            _deck.Add(CreateTemplateCard("Solar Array Deploy"));
+            _deck.Add(CreateTemplateCard("Solar Array Deploy"));
+            _deck.Add(CreateTemplateCard("Solar Array Deploy"));
+            _deck.Add(CreateTemplateCard("Solar Array Deploy"));
+            
+            _deck.Add(CreateTemplateCard("Budget Request"));
+            _deck.Add(CreateTemplateCard("Budget Request"));
+            
+            _deck.Add(CreateTemplateCard("Multispectral Imager"));
+            _deck.Add(CreateTemplateCard("Multispectral Imager"));
+            
+            _deck.Add(CreateTemplateCard("Trajectory Correction"));
+            _deck.Add(CreateTemplateCard("Compositional Analysis"));
         }
+
+        ShuffleDeck();
+        Draw(Mathf.Min(drawPhaseCardCount, _deck.Count));
 
         if (cardHandLayout != null)
         {
             cardHandLayout.CollectExistingCards();
             cardHandLayout.RefreshLayout();
         }
+    }
+
+    private CardData CreateTemplateCard(string templateName)
+    {
+        foreach (var tmpl in RandomCardTemplates)
+        {
+            if (tmpl.name == templateName)
+                return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art);
+        }
+        return CreateRandomRuntimeCard();
     }
 
     // -----------------------------------------------------------------------

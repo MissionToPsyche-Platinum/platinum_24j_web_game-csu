@@ -23,6 +23,7 @@ public class EncounterManager : MonoBehaviour
     [SerializeField] private int _maxTurns = 8;
     [SerializeField] private int _currentTurn = 1;
     [SerializeField] private bool _encounterActive;
+    [SerializeField] private bool _isBossEncounter; // Set this for Floor 2 and Floor 4
 
     [Header("Turn Settings")]
     [Tooltip("Cards to draw up to at the start of each turn.")]
@@ -42,6 +43,7 @@ public class EncounterManager : MonoBehaviour
     public int MaxTurns => _maxTurns;
     public int CurrentTurn => _currentTurn;
     public bool IsEncounterActive => _encounterActive;
+    public bool IsBossEncounter => _isBossEncounter;
 
     // Maneuver state accessors
     public bool BonusNextInstrument { get => _bonusNextInstrument; set => _bonusNextInstrument = value; }
@@ -84,8 +86,8 @@ public class EncounterManager : MonoBehaviour
         if (deckManager == null)
             deckManager = FindAnyObjectByType<DeckManager>();
 
-        // Start a default encounter
-        StartEncounter(_encounterType, _objectiveDesc, _targetProgress, _maxTurns);
+        // Default encounter start removed to allow MissionStartUI or other triggers to handle it.
+        // If no UI is present, you can manually call StartEncounter from the inspector or another script.
     }
 
     // -----------------------------------------------------------------------
@@ -93,7 +95,7 @@ public class EncounterManager : MonoBehaviour
     // -----------------------------------------------------------------------
 
     /// <summary>Begin a new encounter with the given parameters.</summary>
-    public void StartEncounter(string type, string objectiveDesc, int target, int turnLimit)
+    public void StartEncounter(string type, string objectiveDesc, int target, int turnLimit, bool isBoss = false)
     {
         _encounterType = type;
         _objectiveDesc = objectiveDesc;
@@ -102,6 +104,7 @@ public class EncounterManager : MonoBehaviour
         _maxTurns = turnLimit;
         _currentTurn = 1;
         _encounterActive = true;
+        _isBossEncounter = isBoss;
 
         // Reset maneuver flags
         _bonusNextInstrument = false;
@@ -168,6 +171,15 @@ public class EncounterManager : MonoBehaviour
         string result = success ? "VICTORY" : "DEFEAT";
         Debug.Log($"[EncounterManager] Encounter {result}!");
         OnEncounterComplete?.Invoke(success);
+
+        if (!success && _isBossEncounter)
+        {
+            Debug.Log("[EncounterManager] Boss failed! Ending run.");
+            // Signal GameManager that the run is lost
+            // We can reuse the mission failed logic if we want, or call a specific method
+            if (ResourceManager.Instance != null)
+                ResourceManager.Instance.TrySpend(0, 0, 999); // Force time to 0 to trigger failure
+        }
     }
 
     /// <summary>Get the current progress as a 0-1 fraction.</summary>
