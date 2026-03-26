@@ -19,6 +19,10 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private TMP_Text deckCountText;
     [SerializeField] private TMP_Text discardCountText;
 
+    [Header("Deck browser")]
+    [Tooltip("Optional; added at runtime on this GameObject if missing.")]
+    [SerializeField] private DeckBrowserUI deckBrowser;
+
     [Header("End Turn Button")]
     [SerializeField] private Button endTurnButton;
 
@@ -57,6 +61,23 @@ public class GameUIController : MonoBehaviour
             endTurnButton.onClick.RemoveAllListeners();
             endTurnButton.onClick.AddListener(HandleEndTurn);
         }
+
+        TryResolvePileCounterTexts();
+        TryResolveHudPanel();
+        TryResolveEncounterPanel();
+        TryWireDeckPileButton();
+    }
+
+    private void TryResolveHudPanel()
+    {
+        if (hudPanel == null)
+            hudPanel = GetComponentInChildren<GameHUD>(true);
+    }
+
+    private void TryResolveEncounterPanel()
+    {
+        if (encounterPanel == null)
+            encounterPanel = GetComponentInChildren<EncounterPanel>(true);
     }
 
     private void Start()
@@ -75,6 +96,11 @@ public class GameUIController : MonoBehaviour
             _deckManager.OnHandChanged += OnHandChanged;
             _deckManager.OnCardPlayed += OnCardPlayed;
         }
+
+        if (deckBrowser == null)
+            deckBrowser = GetComponent<DeckBrowserUI>();
+        if (deckBrowser == null)
+            deckBrowser = gameObject.AddComponent<DeckBrowserUI>();
 
         // Subscribe to EncounterManager events → update encounter panel
         if (_encounterManager != null)
@@ -149,6 +175,7 @@ public class GameUIController : MonoBehaviour
     private void OnTurnAdvanced(int turn)
     {
         encounterPanel?.SetTurn(turn);
+        hudPanel?.SetTurn(turn);
     }
 
     private void OnEncounterComplete(bool success)
@@ -172,6 +199,7 @@ public class GameUIController : MonoBehaviour
     public void SetFloor(int floor)
     {
         hudPanel?.SetFloor(floor, 4);
+        EncounterManager.Instance?.SetRunFloor(floor);
     }
 
     /// <summary>Updates the deck pile counter label.</summary>
@@ -211,6 +239,64 @@ public class GameUIController : MonoBehaviour
     // Internal helpers
     // -----------------------------------------------------------------------
 
+    private void TryResolvePileCounterTexts()
+    {
+        if (deckCountText == null || discardCountText == null)
+        {
+            foreach (var tmp in GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (tmp == null) continue;
+                if (deckCountText == null && tmp.gameObject.name == "DeckCountText")
+                    deckCountText = tmp;
+                else if (discardCountText == null && tmp.gameObject.name == "DiscardCountText")
+                    discardCountText = tmp;
+            }
+        }
+    }
+
+    private void TryWireDeckPileButton()
+    {
+        Transform deckPile = FindDeepChild(transform, "DeckPile");
+        if (deckPile == null)
+            return;
+
+        var btn = deckPile.GetComponent<Button>();
+        if (btn == null)
+        {
+            btn = deckPile.gameObject.AddComponent<Button>();
+            var img = deckPile.GetComponent<Image>();
+            if (img != null)
+                btn.targetGraphic = img;
+        }
+
+        btn.onClick.RemoveListener(HandleDeckPileClicked);
+        btn.onClick.AddListener(HandleDeckPileClicked);
+    }
+
+    private void HandleDeckPileClicked()
+    {
+        if (deckBrowser == null)
+            deckBrowser = GetComponent<DeckBrowserUI>();
+        if (deckBrowser == null)
+            deckBrowser = gameObject.AddComponent<DeckBrowserUI>();
+        deckBrowser.Toggle();
+    }
+
+    private static Transform FindDeepChild(Transform root, string childName)
+    {
+        if (root == null) return null;
+        if (root.name == childName)
+            return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var found = FindDeepChild(root.GetChild(i), childName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
     private static DeckManager FindPrimaryPlayerDeckManager()
     {
         var all = Object.FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
@@ -232,7 +318,7 @@ public class GameUIController : MonoBehaviour
                 ResourceManager.Instance.Budget,
                 ResourceManager.Instance.TimeRemaining);
         else
-            hudPanel?.UpdateResources(3, 6, 15); // Design doc defaults
+            hudPanel?.UpdateResources(4, 4, 40);
 
         hudPanel?.SetFloor(1, 4);
 

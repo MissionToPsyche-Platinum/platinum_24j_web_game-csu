@@ -17,7 +17,7 @@ public static class HUDFixer
         // --- Fix text content (emoji → plain labels) ---
         FixText("PowerText",  "PWR  3",  ref fixes);
         FixText("BudgetText", "BDG  6",  ref fixes);
-        FixText("TimeText",   "TIME  15", ref fixes);
+        FixText("TimeText",   "TIME  40", ref fixes);
 
         // --- Make PlayZone invisible (keep RectTransform for drop detection) ---
         GameObject playZone = GameObject.Find("PlayZone");

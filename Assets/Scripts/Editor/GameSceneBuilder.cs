@@ -101,7 +101,7 @@ public static class GameSceneBuilder
 
         // Resource icons + text (left side)
         float iconX = 30f;
-        string[] resourceLabels = { "PWR  3", "BDG  6", "TIME  15" };
+        string[] resourceLabels = { "PWR  4", "BDG  4", "TIME  40" };
         string[] resourceNames  = { "PowerText", "BudgetText", "TimeText" };
         Color[]  resourceColours = { new Color(1f, 0.85f, 0.2f, 1f), new Color(0.3f, 0.9f, 0.4f, 1f), new Color(0.4f, 0.75f, 1f, 1f) };
 

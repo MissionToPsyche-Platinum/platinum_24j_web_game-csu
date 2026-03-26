@@ -29,6 +29,9 @@ public class GameHUD : MonoBehaviour
     [SerializeField] private TMP_Text floorText;
     [SerializeField] private Text floorTextLegacy;
 
+    [Header("Turn (TopHUD — e.g. TurnCounterText)")]
+    [SerializeField] private TMP_Text turnCounterText;
+
     [Header("Resource Icons (optional)")]
     [SerializeField] private Image powerIcon;
     [SerializeField] private Image budgetIcon;
@@ -51,6 +54,7 @@ public class GameHUD : MonoBehaviour
     {
         BindResourceLabelsIfNeeded();
         BindFloorLabelIfNeeded();
+        BindTurnCounterIfNeeded();
     }
 
     private void OnEnable()
@@ -66,7 +70,12 @@ public class GameHUD : MonoBehaviour
 
     private void Start()
     {
+        // ResourceManager may initialize after this HUD's OnEnable; subscribe again and sync.
+        SubscribeResources();
+        PushCurrentResources();
         SetFloor(1, 4);
+        if (EncounterManager.Instance != null)
+            SetTurn(EncounterManager.Instance.CurrentTurn);
     }
 
     private void SubscribeResources()
@@ -104,7 +113,7 @@ public class GameHUD : MonoBehaviour
                 ResourceManager.Instance.TimeRemaining);
         }
         else
-            UpdateResources(3, 6, 15);
+            UpdateResources(4, 4, 40);
     }
 
     private void OnResourcesChanged(int power, int budget, int time)
@@ -184,6 +193,13 @@ public class GameHUD : MonoBehaviour
             floorTextLegacy.text = line;
     }
 
+    /// <summary>Updates TopHUD turn label (matches <see cref="EncounterManager.OnTurnAdvanced"/>).</summary>
+    public void SetTurn(int turnNumber)
+    {
+        if (turnCounterText != null)
+            turnCounterText.text = $"Turn {turnNumber}";
+    }
+
     private void BindResourceLabelsIfNeeded()
     {
         if (!HasPowerBinding())
@@ -224,6 +240,15 @@ public class GameHUD : MonoBehaviour
         floorText = t.GetComponent<TMP_Text>();
         if (floorText == null)
             floorTextLegacy = t.GetComponent<Text>();
+    }
+
+    private void BindTurnCounterIfNeeded()
+    {
+        if (turnCounterText != null)
+            return;
+        Transform t = FindChildRecursive(transform, "TurnCounterText");
+        if (t != null)
+            turnCounterText = t.GetComponent<TMP_Text>();
     }
 
     private static Transform FindChildRecursive(Transform root, string name)

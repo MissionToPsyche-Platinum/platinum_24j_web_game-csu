@@ -258,10 +258,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72b893a4180387b45b3059c58136d822, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameUIController
-  hudPanel: {fileID: 0}
-  encounterPanel: {fileID: 0}
-  deckCountText: {fileID: 0}
-  discardCountText: {fileID: 0}
+  hudPanel: {fileID: 1981162438304494256}
+  encounterPanel: {fileID: 2907472789979831446}
+  deckCountText: {fileID: 2478439211924278013}
+  discardCountText: {fileID: 7117367971151853824}
   endTurnButton: {fileID: 7916603939374528575}
   playZone: {fileID: 0}
   onEndTurn:
@@ -574,12 +574,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 439287a052d41004d802b2719cff34db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EncounterPanel
-  encounterTypeText: {fileID: 0}
-  objectiveText: {fileID: 0}
-  progressText: {fileID: 0}
-  turnLimitText: {fileID: 0}
-  progressFill: {fileID: 0}
-  turnCounterText: {fileID: 0}
+  encounterTypeText: {fileID: 7496589143497646123}
+  objectiveText: {fileID: 6606336936246017826}
+  progressText: {fileID: 6154833511136130690}
+  turnLimitText: {fileID: 1727020156702498248}
+  progressFill: {fileID: 489671519836386036}
+  turnCounterText: {fileID: 4179233188225454701}
 --- !u!1 &2803889489442818417
 GameObject:
   m_ObjectHideFlags: 0
@@ -1649,10 +1649,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7b78a5f3d81a014897fb3a906efc0a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameHUD
-  powerText: {fileID: 0}
-  budgetText: {fileID: 0}
-  timeText: {fileID: 0}
+  powerText: {fileID: 4098569627641842859}
+  budgetText: {fileID: 609819457083904366}
+  timeText: {fileID: 4167324198992420852}
   floorText: {fileID: 0}
+  turnCounterText: {fileID: 4179233188225454701}
   powerIcon: {fileID: 0}
   budgetIcon: {fileID: 0}
   timeIcon: {fileID: 0}

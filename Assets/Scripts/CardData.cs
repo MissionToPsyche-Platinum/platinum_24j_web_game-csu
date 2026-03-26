@@ -27,6 +27,8 @@ public class CardData : ScriptableObject
 
         // --- Resource ---
         GainPower, GainBudget, GainTime, ReducePowerCosts,
+        /// <summary>+effectValue Power at the start of each turn for the rest of the encounter (Nuclear Battery).</summary>
+        AddTurnStartPower,
 
         // --- Instrument (data collection) ---
         CollectSurface, CollectElemental, CollectMagnetic, CollectGravity, CollectAllData,
@@ -45,6 +47,17 @@ public class CardData : ScriptableObject
         // --- Crisis / Negative Events ---
         LosePower, LoseBudget, LoseTime,
         LoseProgress, SkipTurn, DiscardRandom,
+
+        /// <summary>Ongoing: lose effectValue Power at each turn start (Solar Storm).</summary>
+        CrisisSolarStorm,
+        /// <summary>Ongoing: all Maneuver cards cost +effectValue extra Power (Thruster Anomaly).</summary>
+        CrisisThrusterTax,
+        /// <summary>Next draw phase draws no cards once (Ground Station Conflict).</summary>
+        CrisisBlockDrawOnce,
+        /// <summary>Cannot collect instrument data until cleared (Data Storage Full).</summary>
+        CrisisBlockDataCollection,
+        /// <summary>Next played Maneuver is blocked (fails without cost) once (Debris Field).</summary>
+        CrisisBlockNextManeuver,
     }
     public EffectType effectType;
 
@@ -60,6 +73,7 @@ public class CardData : ScriptableObject
             case EffectType.GainBudget:          return $"+{effectValue} Budget";
             case EffectType.GainTime:            return $"+{effectValue} Time";
             case EffectType.ReducePowerCosts:    return "Power costs reduced this turn";
+            case EffectType.AddTurnStartPower:   return $"+{effectValue} Power each turn";
             case EffectType.CollectSurface:      return $"+{effectValue} Surface data";
             case EffectType.CollectElemental:    return $"+{effectValue} Elemental data";
             case EffectType.CollectMagnetic:     return $"+{effectValue} Magnetic data";
@@ -84,6 +98,11 @@ public class CardData : ScriptableObject
             case EffectType.LoseProgress:        return $"-{effectValue} Progress";
             case EffectType.SkipTurn:            return "Skip next turn";
             case EffectType.DiscardRandom:       return $"Discard {effectValue} cards";
+            case EffectType.CrisisSolarStorm:    return $"Crisis: -{effectValue} Power/turn";
+            case EffectType.CrisisThrusterTax:   return "Crisis: Maneuvers cost +Power";
+            case EffectType.CrisisBlockDrawOnce: return "Crisis: skip next draw";
+            case EffectType.CrisisBlockDataCollection: return "Crisis: data collection blocked";
+            case EffectType.CrisisBlockNextManeuver: return "Crisis: next Maneuver fails";
             default:                             return "";
         }
     }

@@ -34,6 +34,27 @@ public class EncounterManager : MonoBehaviour
     private bool _preventNextPenalty;
     private bool _reducePowerCostsThisTurn;
 
+    [Header("Crisis / passive (runtime)")]
+    [SerializeField] private int _turnStartPowerBonus;
+    [SerializeField] private int _powerDrainEachTurn;
+    [SerializeField] private int _extraManeuverPowerCost;
+    [SerializeField] private bool _skipDrawOnce;
+    [SerializeField] private bool _blockInstrumentData;
+    [SerializeField] private bool _blockNextManeuverPlay;
+    [SerializeField] private bool _stableOrbitAchieved;
+
+    [Header("Passive Time drain (Time as run HP)")]
+    [Tooltip("Time lost at each turn end (after End Turn) under normal conditions.")]
+    [SerializeField] private int _passiveTimeDrainStandard = 1;
+    [Tooltip("Time lost each turn end on boss encounters or when run floor ≥ threshold.")]
+    [SerializeField] private int _passiveTimeDrainEscalated = 2;
+    [Tooltip("Run floor at or above this uses escalated drain (stack with boss: either condition triggers 2/turn).")]
+    [SerializeField] private int _floorThresholdForIncreasedDrain = 3;
+    [Tooltip("Current run floor (1-based). Wire from GameUIController.SetFloor or GameManager when changing floors.")]
+    [SerializeField] private int _runFloor = 1;
+    [Tooltip("When true, uses escalated Time drain for this encounter.")]
+    [SerializeField] private bool _bossEncounter = false;
+
     // Public accessors
     public string EncounterType => _encounterType;
     public string ObjectiveDesc => _objectiveDesc;
@@ -48,6 +69,82 @@ public class EncounterManager : MonoBehaviour
     public bool DoubleNextInstrument { get => _doubleNextInstrument; set => _doubleNextInstrument = value; }
     public bool PreventNextPenalty { get => _preventNextPenalty; set => _preventNextPenalty = value; }
     public bool ReducePowerCostsThisTurn { get => _reducePowerCostsThisTurn; set => _reducePowerCostsThisTurn = value; }
+
+    public int TurnStartPowerBonus => _turnStartPowerBonus;
+    public int PowerDrainEachTurn => _powerDrainEachTurn;
+    public int ExtraManeuverPowerCost => _extraManeuverPowerCost;
+    public bool BlockInstrumentData => _blockInstrumentData;
+    public bool BlockNextManeuverPlay => _blockNextManeuverPlay;
+    public bool StableOrbitAchieved => _stableOrbitAchieved;
+
+    public int RunFloor => _runFloor;
+    public bool IsBossEncounter => _bossEncounter;
+
+    /// <summary>Passive Time lost at turn end (standard 1; escalated 2 when boss or floor ≥ threshold).</summary>
+    public int GetPassiveTimeDrainPerTurn()
+    {
+        if (_bossEncounter || _runFloor >= _floorThresholdForIncreasedDrain)
+            return _passiveTimeDrainEscalated;
+        return _passiveTimeDrainStandard;
+    }
+
+    /// <summary>Updates run floor for Time-drain scaling. Optionally sets boss encounter flag.</summary>
+    public void SetRunFloor(int floor, bool? bossEncounter = null)
+    {
+        _runFloor = Mathf.Max(1, floor);
+        if (bossEncounter.HasValue)
+            _bossEncounter = bossEncounter.Value;
+    }
+
+    public void AddTurnStartPowerBonus(int amount)
+    {
+        if (amount <= 0) return;
+        _turnStartPowerBonus += amount;
+    }
+
+    public void AddPowerDrainPerTurn(int amount)
+    {
+        if (amount <= 0) return;
+        _powerDrainEachTurn += amount;
+    }
+
+    public void AddExtraManeuverPowerCost(int amount)
+    {
+        if (amount <= 0) return;
+        _extraManeuverPowerCost += amount;
+    }
+
+    public void SetSkipDrawOnce() => _skipDrawOnce = true;
+
+    public void SetBlockInstrumentData(bool on) => _blockInstrumentData = on;
+
+    public void SetBlockNextManeuverPlay() => _blockNextManeuverPlay = true;
+
+    public void SetStableOrbitAchieved() => _stableOrbitAchieved = true;
+
+    /// <summary>If true, the next draw phase draws nothing (Ground Station crisis).</summary>
+    public bool ConsumeSkipDrawOnce()
+    {
+        if (!_skipDrawOnce) return false;
+        _skipDrawOnce = false;
+        return true;
+    }
+
+    /// <summary>Called when a maneuver is successfully played; clears debris block if it was waiting.</summary>
+    public void NotifyManeuverPlayedSuccessfully()
+    {
+        _blockNextManeuverPlay = false;
+    }
+
+    /// <summary>Clears ongoing crisis flags (Safe Mode Recovery / Cancel Crisis).</summary>
+    public void ClearAllCrisisEffects()
+    {
+        _powerDrainEachTurn = 0;
+        _extraManeuverPowerCost = 0;
+        _skipDrawOnce = false;
+        _blockInstrumentData = false;
+        _blockNextManeuverPlay = false;
+    }
 
     // Events
     /// <summary>Fired when a new encounter starts. (type, objective, target, turnLimit)</summary>
@@ -105,7 +202,8 @@ public class EncounterManager : MonoBehaviour
     // -----------------------------------------------------------------------
 
     /// <summary>Begin a new encounter with the given parameters.</summary>
-    public void StartEncounter(string type, string objectiveDesc, int target, int turnLimit)
+    /// <param name="isBossEncounter">If set, overrides boss flag for passive Time drain (2/turn). If null, keeps current serialized value.</param>
+    public void StartEncounter(string type, string objectiveDesc, int target, int turnLimit, bool? isBossEncounter = null)
     {
         _encounterType = type;
         _objectiveDesc = objectiveDesc;
@@ -115,11 +213,21 @@ public class EncounterManager : MonoBehaviour
         _currentTurn = 1;
         _encounterActive = true;
 
+        if (isBossEncounter.HasValue)
+            _bossEncounter = isBossEncounter.Value;
+
         // Reset maneuver flags
         _bonusNextInstrument = false;
         _doubleNextInstrument = false;
         _preventNextPenalty = false;
         _reducePowerCostsThisTurn = false;
+        _turnStartPowerBonus = 0;
+        _powerDrainEachTurn = 0;
+        _extraManeuverPowerCost = 0;
+        _skipDrawOnce = false;
+        _blockInstrumentData = false;
+        _blockNextManeuverPlay = false;
+        _stableOrbitAchieved = false;
 
         // Refresh power for the new encounter
         if (ResourceManager.Instance != null)
@@ -153,6 +261,24 @@ public class EncounterManager : MonoBehaviour
 
         // Reset per-turn flags
         _reducePowerCostsThisTurn = false;
+
+        var rm = ResourceManager.Instance;
+        if (rm != null)
+        {
+            rm.ResetPowerAndBudgetForPlayerTurn();
+            if (_turnStartPowerBonus > 0)
+                rm.AddPower(_turnStartPowerBonus);
+            if (_powerDrainEachTurn > 0)
+                rm.AddPower(-_powerDrainEachTurn);
+
+            rm.ApplyPassiveTimeDrainAtTurnEnd();
+            if (rm.TimeRemaining <= 0)
+            {
+                Debug.Log("[EncounterManager] Time depleted — mission failed!");
+                CompleteEncounter(false);
+                return;
+            }
+        }
 
         Debug.Log($"[EncounterManager] Turn {_currentTurn}/{_maxTurns}");
         OnTurnAdvanced?.Invoke(_currentTurn);

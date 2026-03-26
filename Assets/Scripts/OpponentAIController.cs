@@ -15,7 +15,7 @@ public class OpponentAIController : MonoBehaviour
     [Header("Starting resources (first run / full reset)")]
     [SerializeField] private int startingPower = 3;
     [SerializeField] private int startingBudget = 6;
-    [SerializeField] private int startingTime = 15;
+    [SerializeField] private int startingTime = 40;
 
     [Header("Turn behaviour")]
     [SerializeField] private int targetHandSize = 5;
@@ -44,7 +44,11 @@ public class OpponentAIController : MonoBehaviour
     {
         // If EncounterManager already started before this component enabled, match player power refresh.
         if (EncounterManager.Instance != null && EncounterManager.Instance.IsEncounterActive)
-            _power = 5;
+        {
+            _power = 4;
+            _budget = 4;
+            NotifyChanged();
+        }
     }
 
     private void OnEnable()
@@ -61,8 +65,9 @@ public class OpponentAIController : MonoBehaviour
 
     private void OnEncounterStarted(string type, string objective, int current, int target)
     {
-        // Match ResourceManager.RefreshForEncounter: refresh power only; keep budget/time.
-        _power = 5;
+        // Match ResourceManager.RefreshForEncounter: refresh power & budget; keep time.
+        _power = 4;
+        _budget = 4;
         NotifyChanged();
     }
 

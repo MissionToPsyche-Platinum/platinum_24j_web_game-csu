@@ -46,58 +46,71 @@ public class DeckManager : MonoBehaviour
     private readonly List<CardData> _discard = new List<CardData>();
     private readonly List<GameObject> _handViews = new List<GameObject>();
 
-    /// <summary>Full card pool — every card in the game with art, costs, and effects.</summary>
-    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, CardData.CardCategory cat, string art)[] AllCardTemplates =
+    /// <summary>Full card pool — design doc roster (rarity ignored). Tuple ends with effectValue2 (e.g. DrawCards count).</summary>
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] AllCardTemplates =
     {
         // ── Resource ──
-        ("Solar Array Deploy",      "Gain 3 Power",                       0, 0, 0, CardData.EffectType.GainPower,        3, CardData.CardCategory.Resource,   "CardArt/solar array deploy"),
-        ("Budget Request",          "Gain 3 Budget",                      0, 0, 1, CardData.EffectType.GainBudget,       3, CardData.CardCategory.Resource,   "CardArt/budget request card"),
-        ("Mission Extension",       "Gain 5 Time",                        0, 3, 0, CardData.EffectType.GainTime,         5, CardData.CardCategory.Resource,   "CardArt/mission extension"),
-        ("Nuclear Battery",         "Gain 4 Power",                       0, 2, 0, CardData.EffectType.GainPower,        4, CardData.CardCategory.Resource,   "CardArt/nuclear battery"),
-        ("Emergency Fund",          "Gain 5 Budget",                      0, 0, 2, CardData.EffectType.GainBudget,       5, CardData.CardCategory.Resource,   "CardArt/emergency fund"),
-        ("Deep Space Optical Comms","Reduce power costs this turn",       0, 1, 1, CardData.EffectType.ReducePowerCosts, 1, CardData.CardCategory.Resource,   "CardArt/Deep Space Optical Comms"),
+        ("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, 0, CardData.CardCategory.Resource, "CardArt/solar array deploy"),
+        ("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, 0, CardData.CardCategory.Resource, "CardArt/budget request card"),
+        ("Mission Extension", "Gain 5 Time", 0, 3, 0, CardData.EffectType.GainTime, 5, 0, CardData.CardCategory.Resource, "CardArt/mission extension"),
+        ("Nuclear Battery", "+2 Power at the start of each turn", 0, 2, 0, CardData.EffectType.AddTurnStartPower, 2, 0, CardData.CardCategory.Resource, "CardArt/nuclear battery"),
+        ("Power Conservation", "All Power costs reduced by 1 this turn", 0, 0, 1, CardData.EffectType.ReducePowerCosts, 1, 0, CardData.CardCategory.Resource, "CardArt/Power Conservation"),
+        ("Emergency Fund", "Gain 2 Budget", 0, 0, 0, CardData.EffectType.GainBudget, 2, 0, CardData.CardCategory.Resource, "CardArt/emergency fund"),
 
-        // ── Instrument (data collection) ──
-        ("Multispectral Imager",    "Collect 2 Surface data",             2, 0, 1, CardData.EffectType.CollectSurface,   2, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
-        ("Gamma-Ray Spectrometer",  "Collect 3 Elemental data",           3, 0, 2, CardData.EffectType.CollectElemental, 3, CardData.CardCategory.Instrument, "CardArt/Gamma-Ray & Neutron Spectrometer"),
-        ("Magnetometer",            "Collect 2 Magnetic data",            2, 0, 2, CardData.EffectType.CollectMagnetic,  2, CardData.CardCategory.Instrument, "CardArt/Magnetometer"),
-        ("X-band Radio",            "Collect 3 Gravity data",             1, 0, 3, CardData.EffectType.CollectGravity,   3, CardData.CardCategory.Instrument, "CardArt/X-band Radio"),
-        ("Multi-Instrument Suite",  "Collect 1 of all data types",        3, 1, 2, CardData.EffectType.CollectAllData,   1, CardData.CardCategory.Instrument, "CardArt/Multi-Instrument Suite"),
-        ("Magnetic Modeling",       "Collect 3 Magnetic data",            2, 1, 2, CardData.EffectType.CollectMagnetic,  3, CardData.CardCategory.Instrument, "CardArt/Magnetic Modeling"),
-        ("Thermal Reconstruction",  "Collect 2 Surface + 1 Elemental",   3, 0, 2, CardData.EffectType.CollectSurface,   3, CardData.CardCategory.Instrument, "CardArt/Thermal Reconstruction"),
-        ("Peer Review Publication", "Draw 2 cards",                       0, 2, 1, CardData.EffectType.DrawCards,        2, CardData.CardCategory.Instrument, "CardArt/Peer Review Publication"),
+        // ── Instrument ──
+        ("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, 0, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
+        ("Gamma-Ray Spectrometer", "Collect 3 Elemental data", 3, 0, 2, CardData.EffectType.CollectElemental, 3, 0, CardData.CardCategory.Instrument, "CardArt/Gamma-Ray & Neutron Spectrometer"),
+        ("Magnetometer", "Collect 2 Magnetic data", 2, 0, 2, CardData.EffectType.CollectMagnetic, 2, 0, CardData.CardCategory.Instrument, "CardArt/Magnetometer"),
+        ("X-band Radio", "Collect 3 Gravity data", 1, 0, 3, CardData.EffectType.CollectGravity, 3, 0, CardData.CardCategory.Instrument, "CardArt/X-band Radio"),
+        ("Deep Space Optical Comms", "Draw 2 cards", 3, 0, 1, CardData.EffectType.DrawCards, 2, 0, CardData.CardCategory.Instrument, "CardArt/Deep Space Optical Comms"),
+        ("Multi-Instrument Suite", "Collect 1 of each data type", 4, 0, 2, CardData.EffectType.CollectAllData, 1, 0, CardData.CardCategory.Instrument, "CardArt/Multi-Instrument Suite"),
 
         // ── Maneuver ──
-        ("Trajectory Correction",   "Adjust orbital phase (+1 progress)", 2, 1, 0, CardData.EffectType.AdjustOrbit,          1, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
-        ("Altitude Adjustment",     "Next instrument card +1 data",       1, 1, 0, CardData.EffectType.BonusNextInstrument,  1, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
-        ("Close Approach Flyby",    "Next instrument card x2 data",       3, 2, 0, CardData.EffectType.DoubleNextInstrument, 1, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
-        ("Orbit Insertion Burn",    "Orbit insertion (+3 progress)",      4, 2, 0, CardData.EffectType.OrbitInsertion,       3, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
-        ("Reaction Wheel Reset",    "Prevent next crisis penalty",        1, 0, 1, CardData.EffectType.PreventPenalty,       1, CardData.CardCategory.Maneuver, "CardArt/Reaction Wheel Reset"),
+        ("Trajectory Correction", "Adjust orbital phase (+1 progress)", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
+        ("Orbit Insertion Burn", "Enter stable orbit (+4 progress)", 5, 3, 0, CardData.EffectType.OrbitInsertion, 4, 0, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
+        ("Altitude Adjustment", "Next Instrument collects +1 data", 3, 2, 0, CardData.EffectType.BonusNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
+        ("Reaction Wheel Reset", "Prevent penalty on next Instrument card", 1, 0, 0, CardData.EffectType.PreventPenalty, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Reaction Wheel Reset"),
+        ("Close Approach Flyby", "Next Instrument collects double data", 4, 2, 0, CardData.EffectType.DoubleNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
+        ("Safe Mode Recovery", "Clear all active crisis effects", 2, 0, 2, CardData.EffectType.CancelCrisis, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Safe Mode Recovery"),
 
-        // ── Analysis (conclusions) ──
-        ("Compositional Analysis",  "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"),
-        ("Structural Study",        "3 Gravity + 2 Surface → Interior",      0, 1, 2, CardData.EffectType.InteriorConclusion,    0, CardData.CardCategory.Analysis, "CardArt/Structural Study"),
-        ("Comparative Planetology", "Wild conclusion (any data combo)",       0, 2, 3, CardData.EffectType.WildConclusion,        0, CardData.CardCategory.Analysis, "CardArt/Comparative Planetology"),
+        // ── Analysis ──
+        ("Compositional Analysis", "Convert 3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"),
+        ("Magnetic Modeling", "Convert 4 Magnetic → Dynamo Conclusion", 0, 2, 3, CardData.EffectType.DynamoConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Magnetic Modeling"),
+        ("Structural Study", "Convert 3 Gravity + 2 Surface → Interior", 0, 1, 2, CardData.EffectType.InteriorConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Structural Study"),
+        ("Thermal Reconstruction", "Convert 2 of each data type → Formation", 0, 2, 4, CardData.EffectType.FormationConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Thermal Reconstruction"),
+        ("Comparative Planetology", "Convert any 5 data → a Conclusion", 0, 2, 2, CardData.EffectType.WildConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Comparative Planetology"),
+        ("Peer Review Publication", "Upgrade 1 Conclusion to count as 2", 0, 3, 3, CardData.EffectType.UpgradeConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Peer Review Publication"),
 
-        // ── Crisis (negative event cards — 0 cost, auto-play when drawn) ──
-        ("Budget Cut Notice",       "Lose 3 Budget",                      0, 0, 0, CardData.EffectType.LoseBudget,      3, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
-        ("Solar Storm Warning",     "Lose 2 Power",                       0, 0, 0, CardData.EffectType.LosePower,       2, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
-        ("Computer Reboot Required","Lose 1 Time",                        0, 0, 0, CardData.EffectType.LoseTime,        1, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
-        ("Data Storage Full",       "Discard 1 random card",              0, 0, 0, CardData.EffectType.DiscardRandom,    1, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
-        ("Debris Field Detected",   "Lose 2 Progress",                    0, 0, 0, CardData.EffectType.LoseProgress,    2, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
-        ("Ground Station Conflict", "Lose 2 Budget",                      0, 0, 0, CardData.EffectType.LoseBudget,      2, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
-        ("Thruster Anomaly",        "Lose 2 Power and 1 Time",            0, 0, 0, CardData.EffectType.LosePower,       2, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
-        ("Safe Mode Recovery",      "Skip next turn",                     0, 0, 0, CardData.EffectType.SkipTurn,        1, CardData.CardCategory.Crisis, "CardArt/Safe Mode Recovery"),
+        // ── Crisis ──
+        ("Solar Storm Warning", "Crisis: lose 2 Power at each turn start", 0, 0, 0, CardData.EffectType.CrisisSolarStorm, 2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
+        ("Thruster Anomaly", "Crisis: Maneuver cards cost +1 Power", 0, 0, 0, CardData.EffectType.CrisisThrusterTax, 1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
+        ("Ground Station Conflict", "Crisis: skip your next draw phase", 0, 0, 0, CardData.EffectType.CrisisBlockDrawOnce, 1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
+        ("Data Storage Full", "Crisis: cannot collect instrument data until cleared", 0, 0, 0, CardData.EffectType.CrisisBlockDataCollection, 1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
+        ("Debris Field Detected", "Crisis: next Maneuver attempt fails (no cost)", 0, 0, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
+        ("Computer Reboot Required", "Crisis: advance turn immediately", 0, 0, 0, CardData.EffectType.SkipTurn, 1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
+        ("Budget Cut Notice", "Crisis: lose 3 Budget immediately", 0, 0, 0, CardData.EffectType.LoseBudget, 3, 0, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
     };
 
     /// <summary>Non-crisis card templates for random deck building and rewards.</summary>
-    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, CardData.CardCategory cat, string art)[] RandomCardTemplates =
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] RandomCardTemplates =
         System.Array.FindAll(AllCardTemplates, c => c.cat != CardData.CardCategory.Crisis);
 
     // --- Public properties ---
     public IReadOnlyList<CardData> Hand => _hand;
     public int DeckCount => _deck.Count;
     public int DiscardCount => _discard.Count;
+
+    /// <summary>
+    /// Draw order: <see cref="Draw"/> pops from the end of <c>_deck</c>, so index <c>Count-1</c> is drawn next.
+    /// This list is ordered next-draw-first (left-to-right in the deck browser UI).
+    /// </summary>
+    public List<CardData> GetDrawPileOrderedNextDrawFirst()
+    {
+        var list = new List<CardData>(_deck.Count);
+        for (int i = _deck.Count - 1; i >= 0; i--)
+            list.Add(_deck[i]);
+        return list;
+    }
 
     // --- Events ---
     /// <summary>Fired when the hand changes (card drawn or played).</summary>
@@ -158,6 +171,16 @@ public class DeckManager : MonoBehaviour
     /// <summary>Draw up to count cards. Refills from discard if deck is empty.</summary>
     public void Draw(int count)
     {
+        if (count <= 0)
+            return;
+
+        if (EncounterManager.Instance != null && EncounterManager.Instance.ConsumeSkipDrawOnce())
+        {
+            Debug.Log("[DeckManager] Draw phase skipped (Ground Station crisis).");
+            OnHandChanged?.Invoke();
+            return;
+        }
+
         for (int i = 0; i < count; i++)
         {
             if (_deck.Count == 0)
@@ -194,10 +217,26 @@ public class DeckManager : MonoBehaviour
         else if (ResourceManager.Instance == null)
             return false;
 
+        var em0 = EncounterManager.Instance;
+        if (card.category == CardData.CardCategory.Instrument && em0 != null && em0.BlockInstrumentData)
+        {
+            ShowFeedback("Data Storage Full — cannot collect data.");
+            return false;
+        }
+
+        if (card.category == CardData.CardCategory.Maneuver && em0 != null && em0.BlockNextManeuverPlay)
+        {
+            ShowFeedback("Debris field — maneuver blocked!");
+            em0.NotifyManeuverPlayedSuccessfully();
+            return false;
+        }
+
         // Adjust power cost if ReducePowerCosts is active this turn
         int effectivePowerCost = card.costPower;
-        if (EncounterManager.Instance != null && EncounterManager.Instance.ReducePowerCostsThisTurn && effectivePowerCost > 0)
+        if (em0 != null && em0.ReducePowerCostsThisTurn && effectivePowerCost > 0)
             effectivePowerCost = Mathf.Max(0, effectivePowerCost - 1);
+        if (em0 != null && card.category == CardData.CardCategory.Maneuver && em0.ExtraManeuverPowerCost > 0)
+            effectivePowerCost += em0.ExtraManeuverPowerCost;
 
         if (UsesAiResourceWallet)
         {
@@ -218,6 +257,9 @@ public class DeckManager : MonoBehaviour
 
         // Apply the card's effect
         ApplyEffect(card);
+
+        if (EncounterManager.Instance != null && card.category == CardData.CardCategory.Maneuver)
+            EncounterManager.Instance.NotifyManeuverPlayedSuccessfully();
 
         // Move card from hand to discard
         _hand.RemoveAt(handIndex);
@@ -279,6 +321,9 @@ public class DeckManager : MonoBehaviour
             case CardData.EffectType.ReducePowerCosts:
                 if (em != null) em.ReducePowerCostsThisTurn = true;
                 break;
+            case CardData.EffectType.AddTurnStartPower:
+                em?.AddTurnStartPowerBonus(card.effectValue);
+                break;
 
             // === Instrument effects — collect data ===
             case CardData.EffectType.CollectSurface:
@@ -307,6 +352,7 @@ public class DeckManager : MonoBehaviour
                 break;
             case CardData.EffectType.OrbitInsertion:
                 em?.AddProgress(card.effectValue > 0 ? card.effectValue : 3);
+                em?.SetStableOrbitAchieved();
                 break;
             case CardData.EffectType.BonusNextInstrument:
                 if (em != null) em.BonusNextInstrument = true;
@@ -318,8 +364,7 @@ public class DeckManager : MonoBehaviour
                 if (em != null) em.DoubleNextInstrument = true;
                 break;
             case CardData.EffectType.CancelCrisis:
-                // TODO: integrate with crisis system when implemented
-                Debug.Log("[DeckManager] Crisis cancelled (placeholder)");
+                em?.ClearAllCrisisEffects();
                 break;
 
             // === Analysis effects — convert data into conclusions ===
@@ -371,6 +416,22 @@ public class DeckManager : MonoBehaviour
                 break;
             case CardData.EffectType.DiscardRandom:
                 DiscardRandomCards(card.effectValue);
+                break;
+
+            case CardData.EffectType.CrisisSolarStorm:
+                em?.AddPowerDrainPerTurn(card.effectValue);
+                break;
+            case CardData.EffectType.CrisisThrusterTax:
+                em?.AddExtraManeuverPowerCost(card.effectValue);
+                break;
+            case CardData.EffectType.CrisisBlockDrawOnce:
+                em?.SetSkipDrawOnce();
+                break;
+            case CardData.EffectType.CrisisBlockDataCollection:
+                em?.SetBlockInstrumentData(true);
+                break;
+            case CardData.EffectType.CrisisBlockNextManeuver:
+                em?.SetBlockNextManeuverPlay();
                 break;
 
             case CardData.EffectType.None:
@@ -479,7 +540,7 @@ public class DeckManager : MonoBehaviour
 
     private static CardData CreateRuntimeCard(string name, string desc, int p, int b, int t,
         CardData.EffectType effect, int value, CardData.CardCategory category = CardData.CardCategory.Resource,
-        string artResourcePath = null)
+        string artResourcePath = null, int effectValue2 = 0)
     {
         var card = ScriptableObject.CreateInstance<CardData>();
         card.cardName = name;
@@ -489,7 +550,9 @@ public class DeckManager : MonoBehaviour
         card.costTime = t;
         card.effectType = effect;
         card.effectValue = value;
+        card.effectValue2 = effectValue2;
         card.category = category;
+        card.type = (CardData.CardType)(int)category;
 
         if (!string.IsNullOrEmpty(artResourcePath))
         {
@@ -512,6 +575,7 @@ public class DeckManager : MonoBehaviour
         if (card == null) return;
         _discard.Add(card);
         Debug.Log($"[DeckManager] Added '{card.cardName}' to deck (discard pile). Deck={_deck.Count} Discard={_discard.Count}");
+        OnHandChanged?.Invoke();
     }
 
     /// <summary>Creates one random card from the template pool.</summary>
@@ -519,7 +583,7 @@ public class DeckManager : MonoBehaviour
     {
         int idx = UnityEngine.Random.Range(0, RandomCardTemplates.Length);
         var tmpl = RandomCardTemplates[idx];
-        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art);
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
     }
 
     // -----------------------------------------------------------------------

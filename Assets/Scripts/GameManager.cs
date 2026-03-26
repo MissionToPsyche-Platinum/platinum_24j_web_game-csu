@@ -67,7 +67,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>Resets run resources on ResourceManager (e.g. new run from menu).</summary>
-    public void ResetRun(int startBudget = 6, int startTime = 15, int startPower = 3)
+    public void ResetRun(int startPower = 4, int startBudget = 4, int startTime = 40)
     {
         ResourceManager.Instance?.ResetForNewRun(startPower, startBudget, startTime);
     }
