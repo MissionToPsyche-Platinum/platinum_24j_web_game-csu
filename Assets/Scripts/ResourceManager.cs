@@ -9,7 +9,7 @@ public class ResourceManager : MonoBehaviour
     [Header("Resource Values")]
     public int power = 4;
     public int budget = 4;
-    public int time = 40;
+    public int time = 45;
 
     [Header("Player turn (after End Turn / turn advance)")]
     [Tooltip("Power and Budget are set to these values at the start of each player turn.")]
@@ -35,6 +35,7 @@ public class ResourceManager : MonoBehaviour
     {
         power += amount;
         UpdateUI();
+        EncounterManager.Instance?.CheckBossConditions();
     }
 
     public void AddBudget(int amount) 
@@ -75,6 +76,7 @@ public class ResourceManager : MonoBehaviour
         power = turnStartPower;
         budget = turnStartBudget;
         UpdateUI();
+        EncounterManager.Instance?.CheckBossConditions();
     }
 
     /// <summary>Called when a new encounter begins (turn 1).</summary>
@@ -84,7 +86,7 @@ public class ResourceManager : MonoBehaviour
     }
 
     /// <summary>Reset run resources to defaults (or override for custom starts / menu).</summary>
-    public void ResetForNewRun(int startPower = 4, int startBudget = 4, int startTime = 40)
+    public void ResetForNewRun(int startPower = 4, int startBudget = 4, int startTime = 45)
     {
         power = startPower;
         budget = startBudget;
@@ -97,6 +99,9 @@ public class ResourceManager : MonoBehaviour
     public void TrySpend(int p, int b, int t)
     {
         power -= p; budget -= b; time -= t;
+        if (b > 0)
+            EncounterManager.Instance?.NotifyBudgetSpent(b);
         UpdateUI();
+        EncounterManager.Instance?.CheckBossConditions(); // e.g. if an event triggered logic spending power, probably don't need this, but to be safe.
     }
 }
