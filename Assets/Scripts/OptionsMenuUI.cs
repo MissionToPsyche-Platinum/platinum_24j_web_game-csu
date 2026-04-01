@@ -16,6 +16,7 @@ public class OptionsMenuUI : MonoBehaviour
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Button returnButton;
+    [SerializeField] private Button mainMenuButton;
     [SerializeField] private Text optionsTitleText;
 
     [Header("Tabs")]
@@ -54,6 +55,9 @@ public class OptionsMenuUI : MonoBehaviour
         
         if (returnButton == null) 
             returnButton = transform.Find("ReturnButton")?.GetComponent<Button>();
+
+        if (mainMenuButton == null)
+            mainMenuButton = transform.Find("MainMenuButton")?.GetComponent<Button>();
 
         if (optionsTitleText == null)
             optionsTitleText = transform.Find("OptionsTitle")?.GetComponent<Text>();
@@ -105,6 +109,11 @@ public class OptionsMenuUI : MonoBehaviour
             returnButton.onClick.AddListener(HandleReturnClicked);
         }
 
+        if (mainMenuButton != null)
+        {
+            mainMenuButton.onClick.AddListener(HandleMainMenuClicked);
+        }
+
         if (audioTabButton != null)
         {
             audioTabButton.onClick.AddListener(HandleAudioTabClicked);
@@ -129,6 +138,9 @@ public class OptionsMenuUI : MonoBehaviour
         
         if (returnButton != null) 
             returnButton.onClick.RemoveListener(HandleReturnClicked);
+
+        if (mainMenuButton != null)
+            mainMenuButton.onClick.RemoveListener(HandleMainMenuClicked);
 
         if (audioTabButton != null)
             audioTabButton.onClick.RemoveListener(HandleAudioTabClicked);
@@ -155,6 +167,11 @@ public class OptionsMenuUI : MonoBehaviour
     {
         // Navigates back using your project's existing navigation logic
         OptionsNavigation.ReturnToPreviousOrFallback();
+    }
+
+    private void HandleMainMenuClicked()
+    {
+        OptionsNavigation.LoadMainMenu();
     }
 
     private void HandleAudioTabClicked()
