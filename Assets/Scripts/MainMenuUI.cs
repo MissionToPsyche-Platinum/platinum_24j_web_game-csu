@@ -42,12 +42,17 @@ public class MainMenuUI : MonoBehaviour
     [Tooltip("Background layer under Main_Canvas (e.g., 'Background_Layer'). Usually stays enabled for both menu and gameplay.")]
     public GameObject backgroundLayer;
 
+    [Header("In-scene game start")]
+    [Tooltip("Optional: GameCanvas under --- UI --- (HUD). If unset, searches for a child named GameCanvas under a root named \"--- UI ---\".")]
+    public GameObject gameCanvas;
+
     /// <summary>
     /// Called by the Start Game button.
     /// If a game scene name is set, loads that scene.
     /// Otherwise, toggles existing layers in the current scene:
     /// - Hides the main menu panel
-    /// - Enables gameplay and hand layers
+    /// - Enables GameCanvas (under --- UI ---) when assigned or found
+    /// - Enables gameplay and hand layers (hand / DeckManager should start disabled until this runs)
     /// </summary>
     public void OnStartGame()
     {
@@ -61,6 +66,8 @@ public class MainMenuUI : MonoBehaviour
         if (mainMenuPanel != null)
             mainMenuPanel.SetActive(false);
 
+        EnableGameCanvasIfPresent();
+
         if (gameplayLayer != null)
             gameplayLayer.SetActive(true);
 
@@ -69,6 +76,22 @@ public class MainMenuUI : MonoBehaviour
 
         if (backgroundLayer != null)
             backgroundLayer.SetActive(true);
+    }
+
+    void EnableGameCanvasIfPresent()
+    {
+        if (gameCanvas != null)
+        {
+            gameCanvas.SetActive(true);
+            return;
+        }
+
+        var uiFolder = GameObject.Find("--- UI ---");
+        if (uiFolder == null)
+            return;
+        var t = uiFolder.transform.Find("GameCanvas");
+        if (t != null)
+            t.gameObject.SetActive(true);
     }
 
     /// <summary>

@@ -3,8 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Encounter objective panel (top-right).
-/// Shows the encounter type, objective description, and a fill-bar progress indicator.
+/// Encounter objective panel (centered under Top HUD).
+/// Content is driven by <see cref="GameUIController"/> / <see cref="EncounterManager"/> events.
 /// </summary>
 public class EncounterPanel : MonoBehaviour
 {
@@ -15,32 +15,18 @@ public class EncounterPanel : MonoBehaviour
     [SerializeField] private TMP_Text turnLimitText;       // e.g. "Turns left: 6"
 
     [Header("Progress Bar")]
-    [SerializeField] private Image progressFill;           // Image with FillMethod = Horizontal
+    [SerializeField] private Image progressFill;           // Image Type = Filled, Horizontal (optional sprite: UI/Default)
+    [Tooltip("Optional display-only slider; if set, value tracks current/max like the fill bar.")]
+    [SerializeField] private Slider progressSlider;
 
     [Header("Turn Counter")]
     [SerializeField] private TMP_Text turnCounterText;     // Current turn number
 
     private int _maxProgress = 1;
 
-    private void Start()
+    private void Awake()
     {
-        // Automatically find UI elements if they aren't assigned in the inspector
         AutoBindUI();
-
-        // Subscribe to EncounterManager events so the UI automatically updates!
-        if (EncounterManager.Instance != null)
-        {
-            EncounterManager.Instance.OnEncounterStarted += HandleEncounterStarted;
-            EncounterManager.Instance.OnProgressChanged += UpdateProgress;
-            EncounterManager.Instance.OnTurnAdvanced += SetTurn;
-
-            // Initialize with current state
-            HandleEncounterStarted(EncounterManager.Instance.EncounterType, 
-                                   EncounterManager.Instance.ObjectiveDesc, 
-                                   EncounterManager.Instance.CurrentProgress, 
-                                   EncounterManager.Instance.TargetProgress);
-            SetTurn(EncounterManager.Instance.CurrentTurn);
-        }
     }
 
     private void AutoBindUI()
@@ -56,24 +42,15 @@ public class EncounterPanel : MonoBehaviour
             Transform bg = transform.Find("ProgressBarBg");
             if (bg != null) progressFill = bg.Find("ProgressFill")?.GetComponent<Image>() ?? bg.GetComponent<Image>();
         }
-    }
 
-    private void OnDestroy()
-    {
-        if (EncounterManager.Instance != null)
+        if (progressSlider == null)
+            progressSlider = GetComponentInChildren<Slider>(true);
+
+        if (progressSlider != null)
         {
-            EncounterManager.Instance.OnEncounterStarted -= HandleEncounterStarted;
-            EncounterManager.Instance.OnProgressChanged -= UpdateProgress;
-            EncounterManager.Instance.OnTurnAdvanced -= SetTurn;
+            progressSlider.interactable = false;
+            progressSlider.transition = Selectable.Transition.None;
         }
-    }
-
-    private void HandleEncounterStarted(string type, string objective, int current, int max)
-    {
-        int turnLimit = 8; // Default, you can retrieve actual turn limit if needed
-        if (EncounterManager.Instance != null) turnLimit = EncounterManager.Instance.MaxTurns;
-        
-        SetEncounter(type, objective, current, max, turnLimit);
     }
 
     /// <summary>
@@ -88,9 +65,21 @@ public class EncounterPanel : MonoBehaviour
     {
         _maxProgress = Mathf.Max(1, max);
 
-        if (encounterTypeText != null) encounterTypeText.text = type.ToUpper();
-        if (objectiveText     != null) objectiveText.text     = objective;
-        if (turnLimitText     != null) turnLimitText.text     = $"Turn limit: {turnLimit}";
+        var kind = EncounterPresentation.Classify(type);
+        if (encounterTypeText != null)
+            encounterTypeText.text = type.ToUpperInvariant();
+        if (objectiveText != null)
+        {
+            string obj = objective ?? "";
+            if (kind == EncounterPresentation.Kind.DataCollection && !string.IsNullOrEmpty(obj))
+                objectiveText.text = obj.ToUpperInvariant();
+            else if (kind == EncounterPresentation.Kind.ResourceManagement && !string.IsNullOrEmpty(obj))
+                objectiveText.text = obj;
+            else
+                objectiveText.text = string.IsNullOrEmpty(obj) ? "—" : obj;
+        }
+        if (turnLimitText != null)
+            turnLimitText.text = EncounterPresentation.FormatTurnLimitLine(kind, turnLimit);
 
         UpdateProgress(current, max);
     }
@@ -103,7 +92,17 @@ public class EncounterPanel : MonoBehaviour
         _maxProgress = Mathf.Max(1, max);
         float fill = Mathf.Clamp01((float)current / _maxProgress);
 
-        if (progressFill != null) progressFill.fillAmount = fill;
+        if (progressFill != null)
+            progressFill.fillAmount = fill;
+
+        if (progressSlider != null)
+        {
+            progressSlider.minValue = 0f;
+            progressSlider.maxValue = 1f;
+            progressSlider.wholeNumbers = false;
+            progressSlider.value = fill;
+        }
+
         if (progressText != null) progressText.text = $"{current} / {max}";
     }
 

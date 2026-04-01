@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -11,6 +12,9 @@ public class CardRewardUI : MonoBehaviour
 {
     /// <summary>True while the reward overlay is shown. Used by <see cref="HandFanner"/> to suppress hand hover.</summary>
     public static bool IsRewardPanelOpen { get; private set; }
+
+    /// <summary>Fired after all reward rounds are done (picked or skipped). Use to start the next encounter.</summary>
+    public event Action OnRewardsComplete;
 
     [Header("UI References")]
     [SerializeField] private GameObject panelRoot;
@@ -196,6 +200,7 @@ public class CardRewardUI : MonoBehaviour
     {
         ClearOptions();
         SetPanelVisible(false);
+        OnRewardsComplete?.Invoke();
     }
 
     private void SetPanelVisible(bool visible)
@@ -222,7 +227,7 @@ public class CardRewardUI : MonoBehaviour
 
     private static DeckManager FindPrimaryPlayerDeckManager()
     {
-        var all = Object.FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
+        var all = UnityEngine.Object.FindObjectsByType<DeckManager>(FindObjectsSortMode.None);
         foreach (var d in all)
         {
             if (d != null && !d.UsesAiResourceWallet)

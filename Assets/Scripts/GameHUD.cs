@@ -32,6 +32,9 @@ public class GameHUD : MonoBehaviour
     [Header("Turn (TopHUD — e.g. TurnCounterText)")]
     [SerializeField] private TMP_Text turnCounterText;
 
+    [Tooltip("Optional single line under resources — set by encounter type (GameObject name EncounterBriefText).")]
+    [SerializeField] private TMP_Text encounterBriefText;
+
     [Header("Resource Icons (optional)")]
     [SerializeField] private Image powerIcon;
     [SerializeField] private Image budgetIcon;
@@ -55,6 +58,7 @@ public class GameHUD : MonoBehaviour
         BindResourceLabelsIfNeeded();
         BindFloorLabelIfNeeded();
         BindTurnCounterIfNeeded();
+        BindEncounterBriefIfNeeded();
     }
 
     private void OnEnable()
@@ -73,7 +77,7 @@ public class GameHUD : MonoBehaviour
         // ResourceManager may initialize after this HUD's OnEnable; subscribe again and sync.
         SubscribeResources();
         PushCurrentResources();
-        SetFloor(1, 4);
+        SetFloorPhase(1, 1, false);
         if (EncounterManager.Instance != null)
             SetTurn(EncounterManager.Instance.CurrentTurn);
     }
@@ -113,7 +117,7 @@ public class GameHUD : MonoBehaviour
                 ResourceManager.Instance.TimeRemaining);
         }
         else
-            UpdateResources(4, 4, 40);
+            UpdateResources(4, 4, 45);
     }
 
     private void OnResourcesChanged(int power, int budget, int time)
@@ -182,11 +186,11 @@ public class GameHUD : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates the floor indicator (e.g. "Floor 2 / 4").
+    /// Updates the floor indicator (e.g. "Floor 2, Boss" or "Floor 1, Encounter 2").
     /// </summary>
-    public void SetFloor(int current, int total)
+    public void SetFloorPhase(int floor, int encounterIdx, bool isBoss)
     {
-        string line = $"Floor {current} / {total}";
+        string line = isBoss ? $"Floor {floor}, Boss" : $"Floor {floor}, Encounter {encounterIdx}";
         if (floorText != null)
             floorText.text = line;
         else if (floorTextLegacy != null)
@@ -198,6 +202,23 @@ public class GameHUD : MonoBehaviour
     {
         if (turnCounterText != null)
             turnCounterText.text = $"Turn {turnNumber}";
+    }
+
+    /// <summary>One-line encounter context under the resource bar (optional TMP).</summary>
+    public void SetEncounterBrief(string line)
+    {
+        BindEncounterBriefIfNeeded();
+        if (encounterBriefText != null)
+            encounterBriefText.text = line ?? "";
+    }
+
+    private void BindEncounterBriefIfNeeded()
+    {
+        if (encounterBriefText != null)
+            return;
+        Transform t = FindChildRecursive(transform.root, "EncounterBriefText");
+        if (t != null)
+            encounterBriefText = t.GetComponent<TMP_Text>();
     }
 
     private void BindResourceLabelsIfNeeded()

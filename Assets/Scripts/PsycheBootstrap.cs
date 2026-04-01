@@ -1,44 +1,104 @@
+using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
 /// Automatic bootstrap for Psyche Mission Strategy.
 /// - Ensures a ResourceManager exists (and persists across scenes).
-/// - Creates a simple ResourceHUD overlay if none is present.
-/// This runs automatically on scene load; you don't have to wire it manually.
+/// - Creates a simple ResourceHUD overlay if none is present (gameplay scenes only).
+/// Menu scenes never get <see cref="ResourceHUD"/> auto-spawn; any leftover <c>ResourceHUD_Auto</c> is removed when a menu loads.
 /// </summary>
 public static class PsycheBootstrap
 {
+    private static bool _subscribed;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void OnAfterSceneLoad()
+    private static void RegisterSceneCallback()
     {
-        // Ensure there is a ResourceManager (singleton).
-        var existingManager = Object.FindFirstObjectByType<ResourceManager>();
-        if (existingManager == null)
+        if (_subscribed)
+            return;
+        _subscribed = true;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        // First scene: sceneLoaded may have fired before we subscribed; handle active scene once.
+        ProcessScene(SceneManager.GetActiveScene());
+    }
+
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ProcessScene(scene);
+    }
+
+    private static void ProcessScene(Scene scene)
+    {
+        EnsureResourceManager();
+
+        if (IsMenuStyleScene(scene))
         {
-            var go = new GameObject("ResourceManager");
-            existingManager = go.AddComponent<ResourceManager>();
-            Object.DontDestroyOnLoad(go);
-            // Newly created manager only: apply default run values and push first UI tick.
-            existingManager.ResetForNewRun();
+            DestroyAutoResourceHud();
+            return;
         }
 
-        // Only create a fallback HUD if neither ResourceHUD nor GameHUD exists.
-        var existingResourceHud = Object.FindFirstObjectByType<ResourceHUD>();
-        var existingGameHud = Object.FindFirstObjectByType<GameHUD>();
+        var existingResourceHud = UnityEngine.Object.FindFirstObjectByType<ResourceHUD>();
+        var existingGameHud = UnityEngine.Object.FindFirstObjectByType<GameHUD>();
         if (existingResourceHud == null && existingGameHud == null)
+            CreateSimpleHud();
+    }
+
+    private static void EnsureResourceManager()
+    {
+        var existingManager = UnityEngine.Object.FindFirstObjectByType<ResourceManager>();
+        if (existingManager != null)
+            return;
+
+        var go = new GameObject("ResourceManager");
+        existingManager = go.AddComponent<ResourceManager>();
+        UnityEngine.Object.DontDestroyOnLoad(go);
+        existingManager.ResetForNewRun();
+    }
+
+    /// <summary>True for main menu (and similar) scenes — no resource strip, no auto HUD.</summary>
+    private static bool IsMenuStyleScene(Scene scene)
+    {
+        if (!scene.IsValid())
+            return false;
+
+        if (scene.name.IndexOf("MainMenu", StringComparison.OrdinalIgnoreCase) >= 0)
+            return true;
+        if (!string.IsNullOrEmpty(scene.path) &&
+            scene.path.IndexOf("MainMenu.unity", StringComparison.OrdinalIgnoreCase) >= 0)
+            return true;
+
+        // Scene objects may not be ready the same frame; still useful when name/path differ.
+        if (UnityEngine.Object.FindFirstObjectByType<MainMenuSetup>() != null)
+            return true;
+
+        return false;
+    }
+
+    private static void DestroyAutoResourceHud()
+    {
+        var huds = UnityEngine.Object.FindObjectsByType<ResourceHUD>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+        foreach (var h in huds)
         {
-            CreateSimpleHud(existingManager);
+            if (h == null)
+                continue;
+            if (h.gameObject.name == "ResourceHUD_Auto")
+                UnityEngine.Object.Destroy(h.gameObject);
         }
     }
 
-    private static void CreateSimpleHud(ResourceManager manager)
+    private static void CreateSimpleHud()
     {
-        // Try to attach to an existing Canvas (e.g. Main_Canvas) if present.
-        Canvas targetCanvas = Object.FindFirstObjectByType<Canvas>();
+        var existingManager = UnityEngine.Object.FindFirstObjectByType<ResourceManager>();
+        if (existingManager == null)
+            return;
+
+        Canvas targetCanvas = UnityEngine.Object.FindFirstObjectByType<Canvas>();
         if (targetCanvas == null)
         {
-            // Fallback: create our own overlay canvas.
             var canvasGo = new GameObject("Psyche_AutoCanvas");
             targetCanvas = canvasGo.AddComponent<Canvas>();
             targetCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -51,7 +111,6 @@ public static class PsycheBootstrap
 
         var hud = hudRoot.AddComponent<ResourceHUD>();
 
-        // Helper to create a label.
         Text MakeLabel(string name, Vector2 anchoredPos)
         {
             var go = new GameObject(name);
@@ -63,7 +122,7 @@ public static class PsycheBootstrap
             rect.anchoredPosition = anchoredPos;
 
             var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = UiFontHelper.KenneyFutureOrFallback();
             text.fontSize = 18;
             text.alignment = TextAnchor.UpperLeft;
             text.color = Color.white;
@@ -72,18 +131,14 @@ public static class PsycheBootstrap
             return text;
         }
 
-        // Create three labels stacked in the top-left corner.
         hud.powerText = MakeLabel("PowerText", new Vector2(10, -10));
         hud.budgetText = MakeLabel("BudgetText", new Vector2(10, -30));
         hud.timeText = MakeLabel("TimeText", new Vector2(10, -50));
 
-        // Initialize once.
         hud.powerFormat = "Power: {0}";
         hud.budgetFormat = "Budget: {0}";
         hud.timeFormat = "Time: {0}";
 
-        // Force an initial update.
         hud.SendMessage("OnEnable", SendMessageOptions.DontRequireReceiver);
     }
 }
-

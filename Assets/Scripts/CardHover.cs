@@ -17,6 +17,8 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (DeckBrowserUI.IsDeckBrowserOpen || CardRewardUI.IsRewardPanelOpen)
+            return;
         if (_fanner == null) _fanner = GetComponentInParent<HandFanner>();
         _fanner?.SetHoveredCard(transform as RectTransform);
     }
@@ -34,6 +36,9 @@ public class CardTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Left) return;
+
+        if (DeckBrowserUI.IsDeckBrowserOpen || CardRewardUI.IsRewardPanelOpen)
+            return;
 
         if (!GamePhaseController.PlayerMayInteractWithCards)
             return;

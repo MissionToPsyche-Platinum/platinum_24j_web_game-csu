@@ -33,6 +33,11 @@ public class GameUIController : MonoBehaviour
     [Header("Play Zone")]
     [SerializeField] private GameObject playZone;   // Drop target for played cards
 
+    [Header("Crisis UI")]
+    [SerializeField] private CrisisWidgetUI crisisWidgetPrefab;
+    [SerializeField] private Transform crisisContainer;
+    private System.Collections.Generic.List<CrisisWidgetUI> _activeCrises = new System.Collections.Generic.List<CrisisWidgetUI>();
+
     [Header("Events")]
     /// <summary>Subscribe to this to receive End Turn notifications.</summary>
     public UnityEvent onEndTurn = new UnityEvent();
@@ -40,6 +45,11 @@ public class GameUIController : MonoBehaviour
     // Cached references to singletons
     private DeckManager _deckManager;
     private EncounterManager _encounterManager;
+    private CardRewardUI _cardRewardUI;
+
+    [Header("Game Flow State")]
+    private int _currentPhase = 1;
+    private int _encountersCompletedInPhase = 0;
 
     private void Awake()
     {
@@ -111,6 +121,12 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnEncounterComplete += OnEncounterComplete;
         }
 
+        _cardRewardUI = GetComponentInChildren<CardRewardUI>(true);
+        if (_cardRewardUI != null)
+        {
+            _cardRewardUI.OnRewardsComplete += HandleRewardsComplete;
+        }
+
         // Initial UI state from current values
         RefreshAllUI();
     }
@@ -135,6 +151,11 @@ public class GameUIController : MonoBehaviour
             _encounterManager.OnProgressChanged -= OnProgressChanged;
             _encounterManager.OnTurnAdvanced -= OnTurnAdvanced;
             _encounterManager.OnEncounterComplete -= OnEncounterComplete;
+        }
+
+        if (_cardRewardUI != null)
+        {
+            _cardRewardUI.OnRewardsComplete -= HandleRewardsComplete;
         }
     }
 
@@ -161,10 +182,13 @@ public class GameUIController : MonoBehaviour
         Debug.Log($"[GameUIController] Card played: {card.cardName}");
     }
 
-    private void OnEncounterStarted(string type, string objective, int current, int turnLimit)
+    private void OnEncounterStarted(string type, string objective, int currentProgress, int targetProgress)
     {
-        if (_encounterManager != null)
-            encounterPanel?.SetEncounter(type, objective, current, _encounterManager.TargetProgress, turnLimit);
+        if (_encounterManager == null)
+            return;
+        int maxTurns = _encounterManager.MaxTurns;
+        encounterPanel?.SetEncounter(type, objective, currentProgress, targetProgress, maxTurns);
+        hudPanel?.SetEncounterBrief(EncounterPresentation.HudSubtitleForType(type));
     }
 
     private void OnProgressChanged(int current, int max)
@@ -182,7 +206,99 @@ public class GameUIController : MonoBehaviour
     {
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
-        // TODO: show victory/defeat overlay
+        // Overlays handled by CardRewardUI or other systems
+    }
+
+    private void OnCrisisActivated(CardData.EffectType crisisType)
+    {
+        if (crisisWidgetPrefab == null || crisisContainer == null) return;
+        
+        var widget = Instantiate(crisisWidgetPrefab, crisisContainer);
+        widget.Setup(crisisType);
+        _activeCrises.Add(widget);
+    }
+
+    private void OnCrisisResolved(CardData.EffectType crisisType)
+    {
+        for (int i = _activeCrises.Count - 1; i >= 0; i--)
+        {
+            if (_activeCrises[i] != null && _activeCrises[i].CrisisType == crisisType)
+            {
+                Destroy(_activeCrises[i].gameObject);
+                _activeCrises.RemoveAt(i);
+                break; // Only remove one instance of that type
+            }
+        }
+    }
+
+    private void HandleRewardsComplete()
+    {
+        if (_encounterManager == null) return;
+        
+        _encountersCompletedInPhase++;
+        
+        int reqEncounters = GetRequiredEncountersForPhase(_currentPhase);
+        if (_encountersCompletedInPhase >= reqEncounters)
+        {
+            _currentPhase++;
+            _encountersCompletedInPhase = 0;
+        }
+        
+        // If we beat floor 4 boss, we win.
+        if (_currentPhase > 4)
+        {
+            Debug.Log("GAME WON! Mission Complete.");
+            // Ideally trigger a real win screen here
+            return;
+        }
+
+        SetFloor(_currentPhase);
+        StartEncounterForCurrentPhase();
+        
+        if (_deckManager != null)
+        {
+            _deckManager.DiscardHand();
+            _deckManager.Draw(5);
+        }
+    }
+
+    private int GetRequiredEncountersForPhase(int phase)
+    {
+        switch (phase)
+        {
+            case 1: return 3; // Cruise Phase
+            case 2: return 1; // Orbit Boss
+            case 3: return 4; // Science Ops
+            case 4: return 1; // Mission Review Boss
+            default: return 99;
+        }
+    }
+
+    private void StartEncounterForCurrentPhase()
+    {
+        switch (_currentPhase)
+        {
+            case 1: // Cruise Phase
+                int d1 = 5 + _encountersCompletedInPhase;
+                _encounterManager.StartDataCollectionEncounter($"Collect {d1} Surface Data", d1, 6 + _encountersCompletedInPhase);
+                // 30% chance for a crisis after the first tutorial encounter
+                if (_encountersCompletedInPhase > 0 && UnityEngine.Random.value < 0.3f)
+                    _encounterManager.TriggerRandomCrisis();
+                break;
+            case 2: // Orbit Insertion
+                _encounterManager.StartOrbitInsertionBoss(8);
+                break;
+            case 3: // Science Operations
+                int d3 = 8 + _encountersCompletedInPhase;
+                _encounterManager.StartDataCollectionEncounter($"Collect {d3} Elemental Data", d3, 8 + _encountersCompletedInPhase);
+                // 50% chance for a crisis in Science Ops
+                if (UnityEngine.Random.value < 0.5f)
+                    _encounterManager.TriggerRandomCrisis();
+                break;
+            case 4: // Mission Review
+                _encounterManager.StartMissionReviewBoss(10);
+                break;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -198,7 +314,9 @@ public class GameUIController : MonoBehaviour
     /// <summary>Sets the current floor and refreshes the floor indicator.</summary>
     public void SetFloor(int floor)
     {
-        hudPanel?.SetFloor(floor, 4);
+        bool isBoss = (floor == 2 || floor == 4);
+        int encounterDisplay = _encountersCompletedInPhase + 1;
+        hudPanel?.SetFloorPhase(floor, encounterDisplay, isBoss);
         EncounterManager.Instance?.SetRunFloor(floor);
     }
 
@@ -320,7 +438,20 @@ public class GameUIController : MonoBehaviour
         else
             hudPanel?.UpdateResources(4, 4, 40);
 
-        hudPanel?.SetFloor(1, 4);
+        hudPanel?.SetFloorPhase(1, 1, false);
+
+        if (_encounterManager != null)
+        {
+            encounterPanel?.SetEncounter(
+                _encounterManager.EncounterType,
+                _encounterManager.ObjectiveDesc,
+                _encounterManager.CurrentProgress,
+                _encounterManager.TargetProgress,
+                _encounterManager.MaxTurns);
+            hudPanel?.SetEncounterBrief(EncounterPresentation.HudSubtitleForType(_encounterManager.EncounterType));
+            encounterPanel?.SetTurn(_encounterManager.CurrentTurn);
+            hudPanel?.SetTurn(_encounterManager.CurrentTurn);
+        }
 
         // Pile counts
         if (_deckManager != null)

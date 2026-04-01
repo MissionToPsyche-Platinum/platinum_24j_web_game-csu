@@ -36,12 +36,25 @@ public class EncounterManager : MonoBehaviour
 
     [Header("Crisis / passive (runtime)")]
     [SerializeField] private int _turnStartPowerBonus;
+    /// <summary>Non–Solar-Storm power loss at turn start (legacy / other effects).</summary>
     [SerializeField] private int _powerDrainEachTurn;
     [SerializeField] private int _extraManeuverPowerCost;
     [SerializeField] private bool _skipDrawOnce;
     [SerializeField] private bool _blockInstrumentData;
     [SerializeField] private bool _blockNextManeuverPlay;
     [SerializeField] private bool _stableOrbitAchieved;
+
+    [Tooltip("Solar Storm: extra Time lost each turn end (stacks). Design: −2/turn on top of passive drain.")]
+    [SerializeField] private int _solarStormExtraTimePerTurn;
+    [SerializeField] private bool _thrusterAnomalyActive;
+    [SerializeField] private bool _groundStationConflictActive;
+    [SerializeField] private bool _dataStorageFullActive;
+    [SerializeField] private bool _debrisFieldCrisisActive;
+    [SerializeField] private bool _computerRebootCrisisActive;
+    [SerializeField] private bool _computerRebootPendingSkipDraw;
+    [SerializeField] private bool _computerRebootCompletingSkippedTurn;
+    [SerializeField] private bool _budgetCutRestoreAvailable;
+    [SerializeField] private int _budgetCutRestoreBudgetAmount = 2;
 
     [Header("Passive Time drain (Time as run HP)")]
     [Tooltip("Time lost at each turn end (after End Turn) under normal conditions.")]
@@ -54,6 +67,11 @@ public class EncounterManager : MonoBehaviour
     [SerializeField] private int _runFloor = 1;
     [Tooltip("When true, uses escalated Time drain for this encounter.")]
     [SerializeField] private bool _bossEncounter = false;
+
+    public enum EncounterLogicType { Standard, OrbitInsertionBoss, MissionReviewBoss }
+    [Header("Boss Tracking")]
+    [SerializeField] private EncounterLogicType _currentLogicType = EncounterLogicType.Standard;
+    [SerializeField] private int _budgetSpentThisEncounter = 0;
 
     // Public accessors
     public string EncounterType => _encounterType;
@@ -77,15 +95,23 @@ public class EncounterManager : MonoBehaviour
     public bool BlockNextManeuverPlay => _blockNextManeuverPlay;
     public bool StableOrbitAchieved => _stableOrbitAchieved;
 
+    public int SolarStormExtraTimePerTurn => _solarStormExtraTimePerTurn;
+    public bool ThrusterAnomalyActive => _thrusterAnomalyActive;
+    public bool GroundStationConflictActive => _groundStationConflictActive;
+    public bool DataStorageFullActive => _dataStorageFullActive;
+    public bool DebrisFieldCrisisActive => _debrisFieldCrisisActive;
+    public bool ComputerRebootCrisisActive => _computerRebootCrisisActive;
+    public bool BudgetCutRestoreAvailable => _budgetCutRestoreAvailable;
+
     public int RunFloor => _runFloor;
     public bool IsBossEncounter => _bossEncounter;
 
-    /// <summary>Passive Time lost at turn end (standard 1; escalated 2 when boss or floor ≥ threshold).</summary>
+    /// <summary>Passive Time lost at turn end (Floor 1: 1, Floor 2: 2, Floor 3: 2, Floor 4: 1).</summary>
     public int GetPassiveTimeDrainPerTurn()
     {
-        if (_bossEncounter || _runFloor >= _floorThresholdForIncreasedDrain)
-            return _passiveTimeDrainEscalated;
-        return _passiveTimeDrainStandard;
+        if (_runFloor == 2 || _runFloor == 3)
+            return _passiveTimeDrainEscalated; // 2
+        return _passiveTimeDrainStandard; // 1
     }
 
     /// <summary>Updates run floor for Time-drain scaling. Optionally sets boss encounter flag.</summary>
@@ -130,13 +156,14 @@ public class EncounterManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>Called when a maneuver is successfully played; clears debris block if it was waiting.</summary>
+    /// <summary>Called when a maneuver is successfully played. Debris crisis is only cleared via <see cref="TryResolveDebrisField"/>.</summary>
     public void NotifyManeuverPlayedSuccessfully()
     {
+        if (_debrisFieldCrisisActive) return;
         _blockNextManeuverPlay = false;
     }
 
-    /// <summary>Clears ongoing crisis flags (Safe Mode Recovery / Cancel Crisis).</summary>
+    /// <summary>Clears ongoing crisis flags (Safe Mode Recovery / Cancel Crisis — “enter safe mode”).</summary>
     public void ClearAllCrisisEffects()
     {
         _powerDrainEachTurn = 0;
@@ -144,6 +171,199 @@ public class EncounterManager : MonoBehaviour
         _skipDrawOnce = false;
         _blockInstrumentData = false;
         _blockNextManeuverPlay = false;
+        _solarStormExtraTimePerTurn = 0;
+        _thrusterAnomalyActive = false;
+        _groundStationConflictActive = false;
+        _dataStorageFullActive = false;
+        _debrisFieldCrisisActive = false;
+        _computerRebootCrisisActive = false;
+        _computerRebootPendingSkipDraw = false;
+        _computerRebootCompletingSkippedTurn = false;
+        _budgetCutRestoreAvailable = false;
+    }
+
+    public event Action<CardData.EffectType> OnCrisisActivated;
+    public event Action<CardData.EffectType> OnCrisisResolved;
+
+    public void TriggerRandomCrisis()
+    {
+        var possibleCrises = new System.Collections.Generic.List<CardData.EffectType> {
+            CardData.EffectType.CrisisSolarStorm,
+            CardData.EffectType.CrisisThrusterTax,
+            CardData.EffectType.CrisisBlockDrawOnce,
+            CardData.EffectType.CrisisBlockDataCollection,
+            CardData.EffectType.CrisisBlockNextManeuver,
+            CardData.EffectType.CrisisComputerReboot,
+            CardData.EffectType.CrisisBudgetCut
+        };
+        var type = possibleCrises[UnityEngine.Random.Range(0, possibleCrises.Count)];
+        
+        switch (type)
+        {
+            case CardData.EffectType.CrisisSolarStorm: AddSolarStormExtraTimeDrain(2); break;
+            case CardData.EffectType.CrisisThrusterTax: ActivateThrusterAnomaly(1); break;
+            case CardData.EffectType.CrisisBlockDrawOnce: ActivateGroundStationConflict(); break;
+            case CardData.EffectType.CrisisBlockDataCollection: ActivateDataStorageFull(); break;
+            case CardData.EffectType.CrisisBlockNextManeuver: ActivateDebrisField(); break;
+            case CardData.EffectType.CrisisComputerReboot: ActivateComputerRebootCrisis(); break;
+            case CardData.EffectType.CrisisBudgetCut: ActivateBudgetCut(3, 2); break;
+        }
+    }
+
+    // --- Crisis activation (from crisis cards) ---
+
+    public void AddSolarStormExtraTimeDrain(int amountPerTurn)
+    {
+        if (amountPerTurn <= 0) return;
+        _solarStormExtraTimePerTurn += amountPerTurn;
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisSolarStorm);
+    }
+
+    public void ActivateThrusterAnomaly(int extraPowerPerManeuver = 1)
+    {
+        if (extraPowerPerManeuver <= 0) return;
+        _thrusterAnomalyActive = true;
+        AddExtraManeuverPowerCost(extraPowerPerManeuver);
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisThrusterTax);
+    }
+
+    public void ActivateGroundStationConflict()
+    {
+        _groundStationConflictActive = true;
+        SetSkipDrawOnce();
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisBlockDrawOnce);
+    }
+
+    public void ActivateDataStorageFull()
+    {
+        _dataStorageFullActive = true;
+        SetBlockInstrumentData(true);
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisBlockDataCollection);
+    }
+
+    public void ActivateDebrisField()
+    {
+        _debrisFieldCrisisActive = true;
+        SetBlockNextManeuverPlay();
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisBlockNextManeuver);
+    }
+
+    public void ActivateComputerRebootCrisis()
+    {
+        _computerRebootCrisisActive = true;
+        _computerRebootPendingSkipDraw = true;
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisComputerReboot);
+    }
+
+    public void ActivateBudgetCut(int immediateBudgetLoss, int restoreBudgetOnResolve)
+    {
+        var rm = ResourceManager.Instance;
+        if (rm != null)
+            rm.AddBudget(-Mathf.Abs(immediateBudgetLoss));
+        _budgetCutRestoreAvailable = true;
+        _budgetCutRestoreBudgetAmount = Mathf.Max(1, restoreBudgetOnResolve);
+        OnCrisisActivated?.Invoke(CardData.EffectType.CrisisBudgetCut);
+    }
+
+    // --- Crisis resolution (pay costs from design doc table) ---
+
+    /// <summary>Solar Storm: Pay 3 Power (Safe Mode / Cancel Crisis clears all instead).</summary>
+    public bool TryResolveSolarStormWithPower()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || _solarStormExtraTimePerTurn <= 0) return false;
+        if (!rm.CanAfford(3, 0, 0)) return false;
+        rm.TrySpend(3, 0, 0);
+        _solarStormExtraTimePerTurn = 0;
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisSolarStorm);
+        return true;
+    }
+
+    /// <summary>Thruster: Pay 2 Budget and 2 Time.</summary>
+    public bool TryResolveThrusterAnomaly()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_thrusterAnomalyActive) return false;
+        if (!rm.CanAfford(0, 2, 2)) return false;
+        rm.TrySpend(0, 2, 2);
+        _thrusterAnomalyActive = false;
+        if (_extraManeuverPowerCost > 0)
+            _extraManeuverPowerCost = Mathf.Max(0, _extraManeuverPowerCost - 1);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisThrusterTax);
+        return true;
+    }
+
+    /// <summary>Ground Station: Pay 2 Budget (clears upcoming draw skip if not yet consumed).</summary>
+    public bool TryResolveGroundStationConflict()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_groundStationConflictActive) return false;
+        if (!rm.CanAfford(0, 2, 0)) return false;
+        rm.TrySpend(0, 2, 0);
+        _groundStationConflictActive = false;
+        _skipDrawOnce = false;
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDrawOnce);
+        return true;
+    }
+
+    /// <summary>Data Storage: Pay 2 Time to downlink.</summary>
+    public bool TryResolveDataStorageFull()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_dataStorageFullActive) return false;
+        if (!rm.CanAfford(0, 0, 2)) return false;
+        rm.TrySpend(0, 0, 2);
+        _dataStorageFullActive = false;
+        _blockInstrumentData = false;
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDataCollection);
+        return true;
+    }
+
+    /// <summary>Debris: Pay 3 Power and 1 Budget.</summary>
+    public bool TryResolveDebrisField()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_debrisFieldCrisisActive) return false;
+        if (!rm.CanAfford(3, 1, 0)) return false;
+        rm.TrySpend(3, 1, 0);
+        _debrisFieldCrisisActive = false;
+        _blockNextManeuverPlay = false;
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockNextManeuver);
+        return true;
+    }
+
+    /// <summary>Computer Reboot: Pay 4 Power — no turn lost if paid before skip resolves.</summary>
+    public bool TryResolveComputerReboot()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_computerRebootCrisisActive) return false;
+        if (!rm.CanAfford(4, 0, 0)) return false;
+        rm.TrySpend(4, 0, 0);
+        bool refillAfterSkippedDraw = _computerRebootCompletingSkippedTurn;
+        _computerRebootCrisisActive = false;
+        _computerRebootPendingSkipDraw = false;
+        _computerRebootCompletingSkippedTurn = false;
+        if (refillAfterSkippedDraw && deckManager != null)
+        {
+            int need = handSize - deckManager.Hand.Count;
+            if (need > 0)
+                deckManager.Draw(need);
+        }
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisComputerReboot);
+        return true;
+    }
+
+    /// <summary>Budget Cut: Pay 3 Time to restore 2 Budget (amounts from card effectValue2).</summary>
+    public bool TryResolveBudgetCutRestore()
+    {
+        var rm = ResourceManager.Instance;
+        if (rm == null || !_budgetCutRestoreAvailable) return false;
+        if (!rm.CanAfford(0, 0, 3)) return false;
+        rm.TrySpend(0, 0, 3);
+        rm.AddBudget(_budgetCutRestoreBudgetAmount);
+        _budgetCutRestoreAvailable = false;
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBudgetCut);
+        return true;
     }
 
     // Events
@@ -215,6 +435,9 @@ public class EncounterManager : MonoBehaviour
 
         if (isBossEncounter.HasValue)
             _bossEncounter = isBossEncounter.Value;
+            
+        _currentLogicType = EncounterLogicType.Standard;
+        _budgetSpentThisEncounter = 0;
 
         // Reset maneuver flags
         _bonusNextInstrument = false;
@@ -228,6 +451,15 @@ public class EncounterManager : MonoBehaviour
         _blockInstrumentData = false;
         _blockNextManeuverPlay = false;
         _stableOrbitAchieved = false;
+        _solarStormExtraTimePerTurn = 0;
+        _thrusterAnomalyActive = false;
+        _groundStationConflictActive = false;
+        _dataStorageFullActive = false;
+        _debrisFieldCrisisActive = false;
+        _computerRebootCrisisActive = false;
+        _computerRebootPendingSkipDraw = false;
+        _computerRebootCompletingSkippedTurn = false;
+        _budgetCutRestoreAvailable = false;
 
         // Refresh power for the new encounter
         if (ResourceManager.Instance != null)
@@ -237,6 +469,68 @@ public class EncounterManager : MonoBehaviour
         OnEncounterStarted?.Invoke(type, objectiveDesc, _currentProgress, _targetProgress);
         OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
         OnTurnAdvanced?.Invoke(_currentTurn);
+    }
+
+    /// <summary>Starts a data-collection encounter (UI + HUD use <c>DATA COLLECTION</c> copy).</summary>
+    public void StartDataCollectionEncounter(string objectiveDesc, int targetDataPoints, int turnLimit, bool? isBossEncounter = null)
+    {
+        StartEncounter("DATA COLLECTION", objectiveDesc, targetDataPoints, turnLimit, isBossEncounter);
+    }
+
+    /// <summary>Starts a resource-management encounter (UI + HUD use <c>RESOURCE MANAGEMENT</c> copy).</summary>
+    public void StartResourceManagementEncounter(string objectiveDesc, int targetProgress, int turnLimit, bool? isBossEncounter = null)
+    {
+        StartEncounter("RESOURCE MANAGEMENT", objectiveDesc, targetProgress, turnLimit, isBossEncounter);
+    }
+
+    /// <summary>Starts Floor 2 Boss.</summary>
+    public void StartOrbitInsertionBoss(int turnLimit)
+    {
+        StartEncounter("ORBIT INSERTION", "Accumulate 10 Power & spend 5 Budget", 1, turnLimit, true);
+        _currentLogicType = EncounterLogicType.OrbitInsertionBoss;
+        CheckBossConditions();
+    }
+
+    /// <summary>Starts Floor 4 Boss.</summary>
+    public void StartMissionReviewBoss(int turnLimit)
+    {
+        StartEncounter("MISSION REVIEW", "Present 3 Conclusions", 1, turnLimit, true);
+        _currentLogicType = EncounterLogicType.MissionReviewBoss;
+        CheckBossConditions();
+    }
+
+    public void NotifyBudgetSpent(int amount)
+    {
+        if (amount > 0)
+        {
+            _budgetSpentThisEncounter += amount;
+            CheckBossConditions();
+        }
+    }
+
+    public void CheckBossConditions()
+    {
+        if (!_encounterActive) return;
+
+        if (_currentLogicType == EncounterLogicType.OrbitInsertionBoss)
+        {
+            var rm = ResourceManager.Instance;
+            // Fake progress out of 1 for the generic bar (optional). The win condition is literal.
+            _currentProgress = (rm != null && rm.Power >= 10 && _budgetSpentThisEncounter >= 5) ? 1 : 0;
+            OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
+
+            if (_currentProgress >= 1)
+                CompleteEncounter(true);
+        }
+        else if (_currentLogicType == EncounterLogicType.MissionReviewBoss)
+        {
+            var dt = DataTracker.Instance;
+            _currentProgress = (dt != null && dt.TotalConclusions >= 3) ? 1 : 0;
+            OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
+
+            if (_currentProgress >= 1)
+                CompleteEncounter(true);
+        }
     }
 
     /// <summary>Add progress toward the encounter objective (e.g. from instrument data collection).</summary>
@@ -257,6 +551,14 @@ public class EncounterManager : MonoBehaviour
     public void AdvanceTurn()
     {
         if (!_encounterActive) return;
+
+        // Computer Reboot: player just finished the “no draw” turn — crisis ends (turn was lost) unless they paid 4 Power earlier.
+        if (_computerRebootCompletingSkippedTurn)
+        {
+            _computerRebootCompletingSkippedTurn = false;
+            _computerRebootCrisisActive = false;
+        }
+
         _currentTurn++;
 
         // Reset per-turn flags
@@ -272,6 +574,12 @@ public class EncounterManager : MonoBehaviour
                 rm.AddPower(-_powerDrainEachTurn);
 
             rm.ApplyPassiveTimeDrainAtTurnEnd();
+            if (_solarStormExtraTimePerTurn > 0)
+            {
+                int loss = Mathf.Min(_solarStormExtraTimePerTurn, rm.TimeRemaining);
+                if (loss > 0)
+                    rm.AddTime(-loss);
+            }
             if (rm.TimeRemaining <= 0)
             {
                 Debug.Log("[EncounterManager] Time depleted — mission failed!");
@@ -291,12 +599,23 @@ public class EncounterManager : MonoBehaviour
             return;
         }
 
-        // Draw cards up to hand size
+        // Draw cards up to hand size (Computer Reboot: skip one draw phase unless resolved with 4 Power)
         if (deckManager != null)
         {
-            int cardsNeeded = handSize - deckManager.Hand.Count;
-            if (cardsNeeded > 0)
-                deckManager.Draw(cardsNeeded);
+            // Discard remaining hand cards first
+            deckManager.DiscardHand();
+
+            if (_computerRebootCrisisActive && _computerRebootPendingSkipDraw)
+            {
+                _computerRebootPendingSkipDraw = false;
+                _computerRebootCompletingSkippedTurn = true;
+            }
+            else
+            {
+                int cardsNeeded = handSize - deckManager.Hand.Count;
+                if (cardsNeeded > 0)
+                    deckManager.Draw(cardsNeeded);
+            }
         }
     }
 
