@@ -3,13 +3,36 @@ using UnityEngine.UI;
 
 public class OptionsMenuUI : MonoBehaviour
 {
+    private enum TabType
+    {
+        Audio,
+        HowToPlay
+    }
+
     [Header("Background")]
-    [SerializeField] private UnityEngine.UI.RawImage backgroundImage;
+    [SerializeField] private RawImage backgroundImage;
 
     [Header("UI References")]
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Button returnButton;
+    [SerializeField] private Text optionsTitleText;
+
+    [Header("Tabs")]
+    [SerializeField] private Button audioTabButton;
+    [SerializeField] private Button howToPlayTabButton;
+    [SerializeField] private GameObject[] audioTabObjects;
+    [SerializeField] private GameObject howToPlayPanel;
+
+    [Header("Tab Colors")]
+    [SerializeField] private Color selectedTabColor = new Color(0.28f, 0.4f, 0.75f, 1f);
+    [SerializeField] private Color selectedTabHighlightColor = new Color(0.34f, 0.46f, 0.82f, 1f);
+    [SerializeField] private Color selectedTabPressedColor = new Color(0.24f, 0.35f, 0.66f, 1f);
+    [SerializeField] private Color unselectedTabColor = new Color(1f, 1f, 1f, 0.92f);
+    [SerializeField] private Color unselectedTabHighlightColor = new Color(1f, 1f, 1f, 1f);
+    [SerializeField] private Color unselectedTabPressedColor = new Color(0.87f, 0.9f, 0.98f, 1f);
+    [SerializeField] private Color selectedTabTextColor = Color.white;
+    [SerializeField] private Color unselectedTabTextColor = new Color(0.12f, 0.18f, 0.33f, 1f);
 
     private void Awake()
     {
@@ -20,7 +43,7 @@ public class OptionsMenuUI : MonoBehaviour
         ConfigureUI();
     }
 
-private void AutoBindReferences()
+    private void AutoBindReferences()
     {
         // We use transform.Find for specific names to avoid picking up the wrong slider
         if (musicSlider == null) 
@@ -32,8 +55,31 @@ private void AutoBindReferences()
         if (returnButton == null) 
             returnButton = transform.Find("ReturnButton")?.GetComponent<Button>();
 
+        if (optionsTitleText == null)
+            optionsTitleText = transform.Find("OptionsTitle")?.GetComponent<Text>();
+
         if (backgroundImage == null)
-            backgroundImage = transform.Find("Background")?.GetComponent<UnityEngine.UI.RawImage>();
+            backgroundImage = transform.Find("Background")?.GetComponent<RawImage>();
+
+        if (audioTabButton == null)
+            audioTabButton = transform.Find("AudioTabButton")?.GetComponent<Button>();
+
+        if (howToPlayTabButton == null)
+            howToPlayTabButton = transform.Find("HowToPlayTabButton")?.GetComponent<Button>();
+
+        if (howToPlayPanel == null)
+            howToPlayPanel = transform.Find("HowToPlayPanel")?.gameObject;
+
+        if (audioTabObjects == null || audioTabObjects.Length == 0)
+        {
+            audioTabObjects = new[]
+            {
+                transform.Find("MusicLabel")?.gameObject,
+                transform.Find("MusicSlider")?.gameObject,
+                transform.Find("SfxLabel")?.gameObject,
+                transform.Find("SfxSlider")?.gameObject
+            };
+        }
     }
 
     private void ConfigureUI()
@@ -58,6 +104,18 @@ private void AutoBindReferences()
         {
             returnButton.onClick.AddListener(HandleReturnClicked);
         }
+
+        if (audioTabButton != null)
+        {
+            audioTabButton.onClick.AddListener(HandleAudioTabClicked);
+        }
+
+        if (howToPlayTabButton != null)
+        {
+            howToPlayTabButton.onClick.AddListener(HandleHowToPlayTabClicked);
+        }
+
+        SetActiveTab(TabType.Audio);
     }
 
     private void OnDestroy()
@@ -71,6 +129,12 @@ private void AutoBindReferences()
         
         if (returnButton != null) 
             returnButton.onClick.RemoveListener(HandleReturnClicked);
+
+        if (audioTabButton != null)
+            audioTabButton.onClick.RemoveListener(HandleAudioTabClicked);
+
+        if (howToPlayTabButton != null)
+            howToPlayTabButton.onClick.RemoveListener(HandleHowToPlayTabClicked);
     }
 
     // --- Event Handlers ---
@@ -91,5 +155,71 @@ private void AutoBindReferences()
     {
         // Navigates back using your project's existing navigation logic
         OptionsNavigation.ReturnToPreviousOrFallback();
+    }
+
+    private void HandleAudioTabClicked()
+    {
+        SetActiveTab(TabType.Audio);
+    }
+
+    private void HandleHowToPlayTabClicked()
+    {
+        SetActiveTab(TabType.HowToPlay);
+    }
+
+    private void SetActiveTab(TabType tab)
+    {
+        bool showAudioTab = tab == TabType.Audio;
+
+        if (audioTabObjects != null)
+        {
+            foreach (GameObject audioObject in audioTabObjects)
+            {
+                if (audioObject != null)
+                    audioObject.SetActive(showAudioTab);
+            }
+        }
+
+        if (howToPlayPanel != null)
+            howToPlayPanel.SetActive(!showAudioTab);
+
+        if (optionsTitleText != null)
+            optionsTitleText.text = showAudioTab ? "Audio Settings" : "How To Play";
+
+        ApplyTabColors(audioTabButton, showAudioTab);
+        ApplyTabColors(howToPlayTabButton, !showAudioTab);
+    }
+
+    private void ApplyTabColors(Button button, bool isSelected)
+    {
+        if (button == null)
+            return;
+
+        ColorBlock colors = button.colors;
+
+        if (isSelected)
+        {
+            colors.normalColor = selectedTabColor;
+            colors.highlightedColor = selectedTabHighlightColor;
+            colors.pressedColor = selectedTabPressedColor;
+            colors.selectedColor = selectedTabHighlightColor;
+        }
+        else
+        {
+            colors.normalColor = unselectedTabColor;
+            colors.highlightedColor = unselectedTabHighlightColor;
+            colors.pressedColor = unselectedTabPressedColor;
+            colors.selectedColor = unselectedTabHighlightColor;
+        }
+
+        button.colors = colors;
+        UpdateTabLabel(button, isSelected ? selectedTabTextColor : unselectedTabTextColor);
+    }
+
+    private void UpdateTabLabel(Button button, Color labelColor)
+    {
+        Text label = button != null ? button.GetComponentInChildren<Text>(true) : null;
+        if (label != null)
+            label.color = labelColor;
     }
 }
