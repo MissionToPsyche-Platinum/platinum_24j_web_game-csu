@@ -6,7 +6,7 @@ public static class EncounterPresentation
     public enum Kind
     {
         DataCollection,
-        ResourceManagement,
+        SystemsStressTest,
         CrisisResponse,
         AnalysisChallenge,
         Other
@@ -17,8 +17,8 @@ public static class EncounterPresentation
         if (string.IsNullOrEmpty(encounterType))
             return Kind.Other;
         var u = encounterType.ToUpperInvariant();
-        if (u.Contains("RESOURCE") && u.Contains("MANAGEMENT"))
-            return Kind.ResourceManagement;
+        if (u.Contains("SYSTEMS") && u.Contains("STRESS"))
+            return Kind.SystemsStressTest;
         if (u.Contains("DATA") || u.Contains("COLLECTION"))
             return Kind.DataCollection;
         if (u.Contains("CRISIS"))
@@ -35,8 +35,8 @@ public static class EncounterPresentation
         {
             case Kind.DataCollection:
                 return "Data collection — gather instrument readings toward the goal.";
-            case Kind.ResourceManagement:
-                return "Resource management — stretch Power, Budget, and Time across turns.";
+            case Kind.SystemsStressTest:
+                return "Systems stress test — resolve crises before they overwhelm you.";
             case Kind.CrisisResponse:
                 return "Crisis response — clear hazards before they compound.";
             case Kind.AnalysisChallenge:
@@ -50,8 +50,8 @@ public static class EncounterPresentation
     {
         switch (kind)
         {
-            case Kind.ResourceManagement:
-                return $"Survive within {maxTurns} turns — resources reset each turn.";
+            case Kind.SystemsStressTest:
+                return $"Resolve 4 crises before 3 stack";
             case Kind.CrisisResponse:
                 return $"Resolve in ≤ {maxTurns} turns";
             case Kind.AnalysisChallenge:

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,8 +23,8 @@ public class MainMenuUI : MonoBehaviour
     [Tooltip("Optional: scene to load when viewing the full card collection (can be added later).")]
     public string cardCollectionSceneName = "";
 
-    [Tooltip("Scene to load for options menu.")]
-    public string optionsSceneName = OptionsNavigation.DefaultOptionsScene;
+    [Tooltip("If empty, Options uses in-scene OptionsCanvas via OptionsOverlayController. If set, loads that scene instead.")]
+    public string optionsSceneName = "";
 
     [Header("Panels / Layout")]
     [Tooltip("Optional: options panel GameObject to toggle on/off.")]
@@ -78,35 +79,87 @@ public class MainMenuUI : MonoBehaviour
             backgroundLayer.SetActive(true);
     }
 
-    void EnableGameCanvasIfPresent()
+    /// <summary>Resolves GameCanvas (assigned or under --- UI ---).</summary>
+    public GameObject ResolveGameCanvasObject()
     {
         if (gameCanvas != null)
-        {
-            gameCanvas.SetActive(true);
-            return;
-        }
-
+            return gameCanvas;
         var uiFolder = GameObject.Find("--- UI ---");
         if (uiFolder == null)
-            return;
+            return null;
         var t = uiFolder.transform.Find("GameCanvas");
-        if (t != null)
-            t.gameObject.SetActive(true);
+        return t != null ? t.gameObject : null;
+    }
+
+    void EnableGameCanvasIfPresent()
+    {
+        var gc = ResolveGameCanvasObject();
+        if (gc != null)
+            gc.SetActive(true);
+    }
+
+    /// <summary>Roots hidden while the in-scene options overlay is shown (see <see cref="OptionsOverlayController"/>).</summary>
+    public void CollectRootsToHideForOptionsOverlay(List<GameObject> list)
+    {
+        if (optionsPanel != null)
+            list.Add(optionsPanel);
+        if (mainMenuPanel != null)
+            list.Add(mainMenuPanel);
+        var gc = ResolveGameCanvasObject();
+        if (gc != null)
+            list.Add(gc);
+        if (gameplayLayer != null)
+            list.Add(gameplayLayer);
+        if (handZoneLayer != null)
+            list.Add(handZoneLayer);
+    }
+
+    /// <summary>
+    /// Opposite of <see cref="OnStartGame"/> when using in-scene layers: show the main menu and hide gameplay HUD.
+    /// Does not load a scene — use from mission end / pause “back to main” when <c>gameSceneName</c> is empty.
+    /// </summary>
+    public void ReturnToMainMenuView()
+    {
+        if (optionsPanel != null)
+            optionsPanel.SetActive(false);
+
+        if (mainMenuPanel != null)
+            mainMenuPanel.SetActive(true);
+
+        DisableGameCanvasIfPresent();
+
+        if (gameplayLayer != null)
+            gameplayLayer.SetActive(false);
+
+        if (handZoneLayer != null)
+            handZoneLayer.SetActive(false);
+
+        if (backgroundLayer != null)
+            backgroundLayer.SetActive(true);
+    }
+
+    void DisableGameCanvasIfPresent()
+    {
+        var gc = ResolveGameCanvasObject();
+        if (gc != null)
+            gc.SetActive(false);
     }
 
     /// <summary>
     /// Called by the Options button.
-    /// Opens the dedicated options scene.
+    /// Prefers in-scene <see cref="OptionsOverlayController"/>; otherwise loads <see cref="optionsSceneName"/> or legacy options panel.
     /// </summary>
     public void OnOpenOptions()
     {
+        if (OptionsOverlayController.TryShow())
+            return;
+
         if (!string.IsNullOrEmpty(optionsSceneName))
         {
             OptionsNavigation.OpenOptions(optionsSceneName);
             return;
         }
 
-        // Fallback: old in-scene panel behavior.
         if (optionsPanel != null)
             optionsPanel.SetActive(true);
         if (mainMenuPanel != null)
@@ -118,6 +171,9 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnCloseOptions()
     {
+        if (OptionsOverlayController.HideIfVisible())
+            return;
+
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 

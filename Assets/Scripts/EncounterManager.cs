@@ -68,10 +68,26 @@ public class EncounterManager : MonoBehaviour
     [Tooltip("When true, uses escalated Time drain for this encounter.")]
     [SerializeField] private bool _bossEncounter = false;
 
-    public enum EncounterLogicType { Standard, OrbitInsertionBoss, MissionReviewBoss }
+    public enum EncounterLogicType { Standard, OrbitInsertionBoss, MissionReviewBoss, SystemsStressTest }
     [Header("Boss Tracking")]
     [SerializeField] private EncounterLogicType _currentLogicType = EncounterLogicType.Standard;
     [SerializeField] private int _budgetSpentThisEncounter = 0;
+    [SerializeField] private int _maneuversPlayedThisEncounter = 0;
+
+    public int ManeuversPlayedThisEncounter => _maneuversPlayedThisEncounter;
+    public int BudgetSpentThisEncounter => _budgetSpentThisEncounter;
+
+    [Header("Systems Stress Test Tracking")]
+    [SerializeField] private int _crisesResolvedThisEncounter = 0;
+    [SerializeField] private int _activeCrisesThisEncounter = 0;
+    private const int StressTestResolveTarget = 4;
+    private const int StressTestActiveLimit = 3;
+
+    public int CrisesResolvedThisEncounter => _crisesResolvedThisEncounter;
+    public int ActiveCrisesThisEncounter => _activeCrisesThisEncounter;
+    public bool IsSystemsStressTest => _currentLogicType == EncounterLogicType.SystemsStressTest;
+    /// <summary>Set after a stress test win so CardRewardUI can bias the reward pool.</summary>
+    public bool LastEncounterWasStressTest { get; private set; }
 
     // Public accessors
     public string EncounterType => _encounterType;
@@ -161,6 +177,8 @@ public class EncounterManager : MonoBehaviour
     {
         if (_debrisFieldCrisisActive) return;
         _blockNextManeuverPlay = false;
+        _maneuversPlayedThisEncounter++;
+        CheckBossConditions();
     }
 
     /// <summary>Clears ongoing crisis flags (Safe Mode Recovery / Cancel Crisis — “enter safe mode”).</summary>
@@ -180,33 +198,67 @@ public class EncounterManager : MonoBehaviour
         _computerRebootPendingSkipDraw = false;
         _computerRebootCompletingSkippedTurn = false;
         _budgetCutRestoreAvailable = false;
+
+        if (deckManager != null)
+            deckManager.RemoveAllCrisisCardsFromHand();
+        if (_currentLogicType == EncounterLogicType.SystemsStressTest)
+        {
+            _activeCrisesThisEncounter = 0;
+            UpdateStressTestState();
+        }
     }
 
     public event Action<CardData.EffectType> OnCrisisActivated;
     public event Action<CardData.EffectType> OnCrisisResolved;
 
+    /// <summary>Random crisis effects only (no hand card) — used outside Systems Stress Test.</summary>
     public void TriggerRandomCrisis()
     {
-        var possibleCrises = new System.Collections.Generic.List<CardData.EffectType> {
-            CardData.EffectType.CrisisSolarStorm,
-            CardData.EffectType.CrisisThrusterTax,
-            CardData.EffectType.CrisisBlockDrawOnce,
-            CardData.EffectType.CrisisBlockDataCollection,
-            CardData.EffectType.CrisisBlockNextManeuver,
-            CardData.EffectType.CrisisComputerReboot,
-            CardData.EffectType.CrisisBudgetCut
-        };
-        var type = possibleCrises[UnityEngine.Random.Range(0, possibleCrises.Count)];
-        
-        switch (type)
+        var crisis = DeckManager.CreateRandomCrisisCard();
+        if (crisis == null) return;
+
+        Debug.Log($"[EncounterManager] Random crisis triggered: {crisis.cardName}");
+        ApplyCrisisCardEffects(crisis);
+    }
+
+    /// <summary>Systems Stress Test: one random crisis card is added to the hand and its effects apply.</summary>
+    public void AddStressTestCrisisToHand()
+    {
+        var crisis = DeckManager.CreateRandomCrisisCard();
+        if (crisis == null) return;
+
+        Debug.Log($"[EncounterManager] Systems Stress Test — crisis added to hand: {crisis.cardName}");
+        ApplyCrisisCardEffects(crisis);
+        deckManager?.AddCrisisCardToHand(crisis);
+    }
+
+    private void ApplyCrisisCardEffects(CardData crisis)
+    {
+        if (crisis == null) return;
+        switch (crisis.effectType)
         {
-            case CardData.EffectType.CrisisSolarStorm: AddSolarStormExtraTimeDrain(2); break;
-            case CardData.EffectType.CrisisThrusterTax: ActivateThrusterAnomaly(1); break;
-            case CardData.EffectType.CrisisBlockDrawOnce: ActivateGroundStationConflict(); break;
-            case CardData.EffectType.CrisisBlockDataCollection: ActivateDataStorageFull(); break;
-            case CardData.EffectType.CrisisBlockNextManeuver: ActivateDebrisField(); break;
-            case CardData.EffectType.CrisisComputerReboot: ActivateComputerRebootCrisis(); break;
-            case CardData.EffectType.CrisisBudgetCut: ActivateBudgetCut(3, 2); break;
+            case CardData.EffectType.CrisisSolarStorm:
+                AddSolarStormExtraTimeDrain(crisis.effectValue);
+                break;
+            case CardData.EffectType.CrisisThrusterTax:
+                ActivateThrusterAnomaly(crisis.effectValue > 0 ? crisis.effectValue : 1);
+                break;
+            case CardData.EffectType.CrisisBlockDrawOnce:
+                ActivateGroundStationConflict();
+                break;
+            case CardData.EffectType.CrisisBlockDataCollection:
+                ActivateDataStorageFull();
+                break;
+            case CardData.EffectType.CrisisBlockNextManeuver:
+                ActivateDebrisField();
+                break;
+            case CardData.EffectType.CrisisComputerReboot:
+                ActivateComputerRebootCrisis();
+                break;
+            case CardData.EffectType.CrisisBudgetCut:
+                ActivateBudgetCut(crisis.effectValue > 0 ? crisis.effectValue : 3,
+                                  crisis.effectValue2 > 0 ? crisis.effectValue2 : 2);
+                break;
         }
     }
 
@@ -276,6 +328,7 @@ public class EncounterManager : MonoBehaviour
         rm.TrySpend(3, 0, 0);
         _solarStormExtraTimePerTurn = 0;
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisSolarStorm);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisSolarStorm);
         return true;
     }
 
@@ -290,6 +343,7 @@ public class EncounterManager : MonoBehaviour
         if (_extraManeuverPowerCost > 0)
             _extraManeuverPowerCost = Mathf.Max(0, _extraManeuverPowerCost - 1);
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisThrusterTax);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisThrusterTax);
         return true;
     }
 
@@ -303,6 +357,7 @@ public class EncounterManager : MonoBehaviour
         _groundStationConflictActive = false;
         _skipDrawOnce = false;
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDrawOnce);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockDrawOnce);
         return true;
     }
 
@@ -316,6 +371,7 @@ public class EncounterManager : MonoBehaviour
         _dataStorageFullActive = false;
         _blockInstrumentData = false;
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDataCollection);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockDataCollection);
         return true;
     }
 
@@ -329,6 +385,7 @@ public class EncounterManager : MonoBehaviour
         _debrisFieldCrisisActive = false;
         _blockNextManeuverPlay = false;
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockNextManeuver);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockNextManeuver);
         return true;
     }
 
@@ -350,6 +407,7 @@ public class EncounterManager : MonoBehaviour
                 deckManager.Draw(need);
         }
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisComputerReboot);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisComputerReboot);
         return true;
     }
 
@@ -363,6 +421,7 @@ public class EncounterManager : MonoBehaviour
         rm.AddBudget(_budgetCutRestoreBudgetAmount);
         _budgetCutRestoreAvailable = false;
         OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBudgetCut);
+        deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBudgetCut);
         return true;
     }
 
@@ -379,6 +438,12 @@ public class EncounterManager : MonoBehaviour
     /// <summary>Fired when the encounter ends. (success)</summary>
     public event Action<bool> OnEncounterComplete;
 
+    /// <summary>Fired for boss encounters with dual progress (maneuversCurrent, maneuversTarget, budgetCurrent, budgetTarget).</summary>
+    public event Action<int, int, int, int> OnBossProgressChanged;
+
+    /// <summary>Fired for Systems Stress Test progress (resolvedCur, resolvedMax, activeCur, activeMax).</summary>
+    public event Action<int, int, int, int> OnStressTestProgressChanged;
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -387,12 +452,57 @@ public class EncounterManager : MonoBehaviour
             return;
         }
         _instance = this;
+
+        OnCrisisActivated += HandleCrisisActivated;
+        OnCrisisResolved += HandleCrisisResolved;
     }
 
     private void OnDestroy()
     {
         if (_instance == this)
             _instance = null;
+
+        OnCrisisActivated -= HandleCrisisActivated;
+        OnCrisisResolved -= HandleCrisisResolved;
+    }
+
+    private void HandleCrisisActivated(CardData.EffectType type)
+    {
+        if (_currentLogicType == EncounterLogicType.SystemsStressTest)
+        {
+            _activeCrisesThisEncounter++;
+            UpdateStressTestState();
+        }
+    }
+
+    private void HandleCrisisResolved(CardData.EffectType type)
+    {
+        if (_currentLogicType == EncounterLogicType.SystemsStressTest)
+        {
+            _crisesResolvedThisEncounter++;
+            _activeCrisesThisEncounter = Mathf.Max(0, _activeCrisesThisEncounter - 1);
+            UpdateStressTestState();
+        }
+    }
+
+    private void UpdateStressTestState()
+    {
+        if (!_encounterActive) return;
+        
+        OnStressTestProgressChanged?.Invoke(
+            _crisesResolvedThisEncounter, StressTestResolveTarget,
+            _activeCrisesThisEncounter, StressTestActiveLimit);
+
+        if (_activeCrisesThisEncounter >= StressTestActiveLimit)
+        {
+            CompleteEncounter(false); // Defeat
+        }
+        else if (_crisesResolvedThisEncounter >= StressTestResolveTarget)
+        {
+            _currentProgress = 1;
+            LastEncounterWasStressTest = true;
+            CompleteEncounter(true); // Victory
+        }
     }
 
     private void Start()
@@ -438,6 +548,10 @@ public class EncounterManager : MonoBehaviour
             
         _currentLogicType = EncounterLogicType.Standard;
         _budgetSpentThisEncounter = 0;
+        _maneuversPlayedThisEncounter = 0;
+        _crisesResolvedThisEncounter = 0;
+        _activeCrisesThisEncounter = 0;
+        LastEncounterWasStressTest = false;
 
         // Reset maneuver flags
         _bonusNextInstrument = false;
@@ -477,17 +591,21 @@ public class EncounterManager : MonoBehaviour
         StartEncounter("DATA COLLECTION", objectiveDesc, targetDataPoints, turnLimit, isBossEncounter);
     }
 
-    /// <summary>Starts a resource-management encounter (UI + HUD use <c>RESOURCE MANAGEMENT</c> copy).</summary>
-    public void StartResourceManagementEncounter(string objectiveDesc, int targetProgress, int turnLimit, bool? isBossEncounter = null)
+    /// <summary>Starts a Systems Stress Test encounter. Win: resolve 4 crises. Lose: 3 active crises simultaneously.</summary>
+    public void StartSystemsStressTestEncounter(int turnLimit = 999)
     {
-        StartEncounter("RESOURCE MANAGEMENT", objectiveDesc, targetProgress, turnLimit, isBossEncounter);
+        StartEncounter("SYSTEMS STRESS TEST", "Resolve 4 crises before 3 stack", 1, turnLimit, false);
+        _currentLogicType = EncounterLogicType.SystemsStressTest;
+        OnStressTestProgressChanged?.Invoke(0, StressTestResolveTarget, 0, StressTestActiveLimit);
+        AddStressTestCrisisToHand();
     }
 
     /// <summary>Starts Floor 2 Boss.</summary>
     public void StartOrbitInsertionBoss(int turnLimit)
     {
-        StartEncounter("ORBIT INSERTION", "Accumulate 10 Power & spend 5 Budget", 1, turnLimit, true);
+        StartEncounter("ORBIT INSERTION", "Play 3 Maneuvers & spend 12 Budget", 1, turnLimit, true);
         _currentLogicType = EncounterLogicType.OrbitInsertionBoss;
+        OnBossProgressChanged?.Invoke(_maneuversPlayedThisEncounter, 3, _budgetSpentThisEncounter, 12);
         CheckBossConditions();
     }
 
@@ -514,9 +632,10 @@ public class EncounterManager : MonoBehaviour
 
         if (_currentLogicType == EncounterLogicType.OrbitInsertionBoss)
         {
-            var rm = ResourceManager.Instance;
-            // Fake progress out of 1 for the generic bar (optional). The win condition is literal.
-            _currentProgress = (rm != null && rm.Power >= 10 && _budgetSpentThisEncounter >= 5) ? 1 : 0;
+            bool maneuversMet = _maneuversPlayedThisEncounter >= 3;
+            bool budgetMet = _budgetSpentThisEncounter >= 12;
+            _currentProgress = (maneuversMet && budgetMet) ? 1 : 0;
+            OnBossProgressChanged?.Invoke(_maneuversPlayedThisEncounter, 3, _budgetSpentThisEncounter, 12);
             OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
 
             if (_currentProgress >= 1)
@@ -573,7 +692,20 @@ public class EncounterManager : MonoBehaviour
             if (_powerDrainEachTurn > 0)
                 rm.AddPower(-_powerDrainEachTurn);
 
-            rm.ApplyPassiveTimeDrainAtTurnEnd();
+            bool shouldDrainTime = true;
+            if (IsSystemsStressTest)
+            {
+                // Drain Time on odd-numbered turns only.
+                // Since _currentTurn was just incremented, it represents the NEW turn.
+                // The turn that just ended is (_currentTurn - 1).
+                shouldDrainTime = ((_currentTurn - 1) % 2 != 0);
+            }
+
+            if (shouldDrainTime)
+            {
+                rm.ApplyPassiveTimeDrainAtTurnEnd();
+            }
+
             if (_solarStormExtraTimePerTurn > 0)
             {
                 int loss = Mathf.Min(_solarStormExtraTimePerTurn, rm.TimeRemaining);
@@ -602,8 +734,8 @@ public class EncounterManager : MonoBehaviour
         // Draw cards up to hand size (Computer Reboot: skip one draw phase unless resolved with 4 Power)
         if (deckManager != null)
         {
-            // Discard remaining hand cards first
-            deckManager.DiscardHand();
+            // Discard non-crisis cards; crisis cards stay until resolved via crisis panel.
+            deckManager.DiscardNonCrisisCards();
 
             if (_computerRebootCrisisActive && _computerRebootPendingSkipDraw)
             {
@@ -617,6 +749,9 @@ public class EncounterManager : MonoBehaviour
                     deckManager.Draw(cardsNeeded);
             }
         }
+
+        if (IsSystemsStressTest)
+            AddStressTestCrisisToHand();
     }
 
     private void CompleteEncounter(bool success)
@@ -629,4 +764,17 @@ public class EncounterManager : MonoBehaviour
 
     /// <summary>Get the current progress as a 0-1 fraction.</summary>
     public float ProgressFraction => (float)_currentProgress / Mathf.Max(1, _targetProgress);
+
+    // -----------------------------------------------------------------------
+    // Debug — press semicolon (;) to auto-complete the current encounter
+    // -----------------------------------------------------------------------
+    private void Update()
+    {
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null && kb[UnityEngine.InputSystem.Key.Semicolon].wasPressedThisFrame && _encounterActive)
+        {
+            Debug.Log("[EncounterManager] Debug Semicolon pressed — auto-completing encounter.");
+            CompleteEncounter(true);
+        }
+    }
 }

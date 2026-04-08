@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ea7822debdbe45a3b424369cd65e56d, type: 3}
+  m_Name: Trajectory Correction
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: Trajectory Correction
+  type: 2
+  category: 2
+  costPower: 2
+  costBudget: 1
+  costTime: 0
+  description: Adjust orbital phase
+  dataValue: 0
+  cardArt: {fileID: 21300000, guid: 01aa1cb58139e714ebbe4f6a3b0c42a8, type: 3}
+  effectType: 11
+  effectValue: 1
+  effectValue2: 0

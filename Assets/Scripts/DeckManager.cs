@@ -50,12 +50,12 @@ public class DeckManager : MonoBehaviour
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] AllCardTemplates =
     {
         // ── Resource ──
-        ("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, 0, CardData.CardCategory.Resource, "CardArt/solar array deploy"),
-        ("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, 0, CardData.CardCategory.Resource, "CardArt/budget request card"),
+        ("Solar Array Deploy", "Gain 3 Power this turn", 0, 0, 0, CardData.EffectType.GainPower, 3, 0, CardData.CardCategory.Resource, "CardArt/solar array deploy"),
+        ("Budget Request", "Gain 3 Budget this turn", 0, 0, 1, CardData.EffectType.GainBudget, 3, 0, CardData.CardCategory.Resource, "CardArt/budget request card"),
         ("Mission Extension", "Gain 5 Time", 0, 3, 0, CardData.EffectType.GainTime, 5, 0, CardData.CardCategory.Resource, "CardArt/mission extension"),
-        ("Nuclear Battery", "+2 Power at the start of each turn", 0, 2, 0, CardData.EffectType.AddTurnStartPower, 2, 0, CardData.CardCategory.Resource, "CardArt/nuclear battery"),
+        ("Nuclear Battery", "Raise Power reset ceiling by +1 (max +2 total)", 0, 2, 0, CardData.EffectType.AddTurnStartPower, 1, 0, CardData.CardCategory.Resource, "CardArt/nuclear battery"),
         ("Power Conservation", "All Power costs reduced by 1 this turn", 0, 0, 1, CardData.EffectType.ReducePowerCosts, 1, 0, CardData.CardCategory.Resource, "CardArt/Power Conservation"),
-        ("Emergency Fund", "Gain 2 Budget", 0, 0, 0, CardData.EffectType.GainBudget, 2, 0, CardData.CardCategory.Resource, "CardArt/emergency fund"),
+        ("Emergency Fund", "Gain 2 Budget immediately (Crisis only)", 0, 0, 0, CardData.EffectType.GainBudget, 2, 0, CardData.CardCategory.Resource, "CardArt/emergency fund"),
 
         // ── Instrument ──
         ("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, 0, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
@@ -66,12 +66,12 @@ public class DeckManager : MonoBehaviour
         ("Multi-Instrument Suite", "Collect 1 of each data type", 4, 0, 2, CardData.EffectType.CollectAllData, 1, 0, CardData.CardCategory.Instrument, "CardArt/Multi-Instrument Suite"),
 
         // ── Maneuver ──
-        ("Trajectory Correction", "Adjust orbital phase (+1 progress)", 0, 1, 0, CardData.EffectType.AdjustOrbit, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
-        ("Orbit Insertion Burn", "Enter stable orbit (+4 progress)", 5, 3, 0, CardData.EffectType.OrbitInsertion, 4, 0, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
-        ("Altitude Adjustment", "Next Instrument collects +1 data", 1, 1, 0, CardData.EffectType.BonusNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
+        ("Trajectory Correction", "Adjust orbital phase", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
+        ("Orbit Insertion Burn", "Enter stable orbit (enables advanced instruments)", 5, 3, 0, CardData.EffectType.OrbitInsertion, 4, 0, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
+        ("Altitude Adjustment", "Move altitude bands (+1 bonus to next Instrument)", 3, 2, 0, CardData.EffectType.BonusNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
         ("Reaction Wheel Reset", "Prevent penalty on next Instrument card", 1, 0, 0, CardData.EffectType.PreventPenalty, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Reaction Wheel Reset"),
-        ("Close Approach Flyby", "Next Instrument collects double data", 2, 1, 0, CardData.EffectType.DoubleNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
-        ("Safe Mode Recovery", "Clear all active crisis effects", 2, 0, 2, CardData.EffectType.CancelCrisis, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Safe Mode Recovery"),
+        ("Close Approach Flyby", "Next Instrument collects double data (Risk: Crisis)", 4, 2, 0, CardData.EffectType.DoubleNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
+        ("Safe Mode Recovery", "Cancel 1 active Crisis effect", 2, 0, 2, CardData.EffectType.CancelCrisis, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Safe Mode Recovery"),
 
         // ── Analysis ──
         ("Compositional Analysis", "Convert 3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"),
@@ -82,12 +82,12 @@ public class DeckManager : MonoBehaviour
         ("Peer Review Publication", "Upgrade 1 Conclusion to count as 2", 0, 3, 3, CardData.EffectType.UpgradeConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Peer Review Publication"),
 
         // ── Crisis (penalty + resolve costs — see EncounterManager.TryResolve*) ──
-        ("Solar Storm Warning", "Penalty: −2 Time/turn (stacks). Resolve: 3 Power, or Safe Mode (clear all).", 0, 0, 0, CardData.EffectType.CrisisSolarStorm, 2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
-        ("Thruster Anomaly", "Penalty: Maneuvers +1 Power. Resolve: 2 Budget + 2 Time.", 0, 0, 0, CardData.EffectType.CrisisThrusterTax, 1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
-        ("Ground Station Conflict", "Penalty: next draw skipped. Resolve: 2 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockDrawOnce, 1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
-        ("Data Storage Full", "Penalty: cannot collect data. Resolve: 2 Time (downlink).", 0, 0, 0, CardData.EffectType.CrisisBlockDataCollection, 1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
-        ("Debris Field Detected", "Penalty: maneuvers blocked. Resolve: 3 Power + 1 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
-        ("Computer Reboot Required", "Penalty: lose next turn's draw. Resolve: 4 Power (no turn lost).", 0, 0, 0, CardData.EffectType.CrisisComputerReboot, 1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
+        ("Solar Storm Warning", "Lose 2 extra Time/turn (stacks). Resolve: 3 Power OR safe mode.", 0, 0, 0, CardData.EffectType.CrisisSolarStorm, 2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
+        ("Thruster Anomaly", "All Maneuvers cost +1 Power. Resolve: 2 Budget + 2 Time.", 0, 0, 0, CardData.EffectType.CrisisThrusterTax, 1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
+        ("Ground Station Conflict", "Cannot draw for 1 turn. Resolve: 2 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockDrawOnce, 1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
+        ("Data Storage Full", "Cannot collect data until resolved. Resolve: 2 Time (downlink).", 0, 0, 0, CardData.EffectType.CrisisBlockDataCollection, 1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
+        ("Debris Field Detected", "Next Maneuver fails unless resolved. Resolve: 3 Power + 1 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
+        ("Computer Reboot Required", "Skip next turn entirely. Resolve: 4 Power (no turn lost).", 0, 0, 0, CardData.EffectType.CrisisComputerReboot, 1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
         ("Budget Cut Notice", "Penalty: −3 Budget now. Resolve: 3 Time → +2 Budget.", 0, 0, 0, CardData.EffectType.CrisisBudgetCut, 3, 2, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
     };
 
@@ -95,12 +95,18 @@ public class DeckManager : MonoBehaviour
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] RandomCardTemplates =
         System.Array.FindAll(AllCardTemplates, c => c.cat != CardData.CardCategory.Crisis);
 
+    /// <summary>Resource and maneuver templates for stress test reward bias.</summary>
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] StressTestRewardTemplates =
+        System.Array.FindAll(AllCardTemplates, c => c.cat == CardData.CardCategory.Resource || c.cat == CardData.CardCategory.Maneuver);
+
     /// <summary>Design document §8 — default player starting deck (10 cards), built from <see cref="AllCardTemplates"/>.</summary>
     private static readonly string[] DefaultStartingDeckCardNames =
     {
         "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy",
-        "Budget Request", "Budget Request", "Budget Request",
-        "Multispectral Imager", "Multispectral Imager", "Multispectral Imager"
+        "Budget Request", "Budget Request",
+        "Multispectral Imager", "Multispectral Imager",
+        "Trajectory Correction",
+        "Compositional Analysis"
     };
 
     // --- Public properties ---
@@ -237,6 +243,67 @@ public class DeckManager : MonoBehaviour
         OnHandChanged?.Invoke();
     }
 
+    /// <summary>Discards non-crisis cards only. Crisis cards stay in hand until resolved (Systems Stress Test).</summary>
+    public void DiscardNonCrisisCards()
+    {
+        for (int i = _hand.Count - 1; i >= 0; i--)
+        {
+            if (_hand[i].category == CardData.CardCategory.Crisis)
+                continue;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+        }
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Adds a runtime crisis card to the hand (not drawn from the deck). Used by Systems Stress Test.</summary>
+    public void AddCrisisCardToHand(CardData card)
+    {
+        if (card == null || card.category != CardData.CardCategory.Crisis || UsesAiResourceWallet)
+            return;
+        _hand.Add(card);
+        SpawnCardView(card);
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Removes the first crisis card matching the effect type (e.g. after paying resolve costs). Returns true if one was removed.</summary>
+    public bool RemoveFirstCrisisCardWithEffectType(CardData.EffectType effectType)
+    {
+        for (int i = 0; i < _hand.Count; i++)
+        {
+            if (_hand[i].category != CardData.CardCategory.Crisis || _hand[i].effectType != effectType)
+                continue;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+            RefreshHandLayout();
+            OnHandChanged?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Removes all crisis cards from hand (e.g. Safe Mode). Cards go to discard.</summary>
+    public void RemoveAllCrisisCardsFromHand()
+    {
+        bool any = false;
+        for (int i = _hand.Count - 1; i >= 0; i--)
+        {
+            if (_hand[i].category != CardData.CardCategory.Crisis)
+                continue;
+            any = true;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+        }
+        if (!any) return;
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
     // -----------------------------------------------------------------------
     // Playing cards
     // -----------------------------------------------------------------------
@@ -246,6 +313,11 @@ public class DeckManager : MonoBehaviour
     {
         if (handIndex < 0 || handIndex >= _hand.Count) return false;
         var card = _hand[handIndex];
+        if (card.category == CardData.CardCategory.Crisis)
+        {
+            ShowFeedback("Resolve crisis cards using the crisis panel — they stay in hand until resolved.");
+            return false;
+        }
         if (UsesAiResourceWallet)
         {
             if (aiResourceWallet == null) return false;
@@ -559,7 +631,19 @@ public class DeckManager : MonoBehaviour
     {
         for (int i = 0; i < count && _hand.Count > 0; i++)
         {
-            int idx = UnityEngine.Random.Range(0, _hand.Count);
+            int idx = -1;
+            int guard = 0;
+            while (guard++ < 64 && _hand.Count > 0)
+            {
+                int tryIdx = UnityEngine.Random.Range(0, _hand.Count);
+                if (_hand[tryIdx].category != CardData.CardCategory.Crisis)
+                {
+                    idx = tryIdx;
+                    break;
+                }
+            }
+            if (idx < 0)
+                break;
             var discarded = _hand[idx];
             _hand.RemoveAt(idx);
             RemoveCardViewAt(idx);
@@ -717,6 +801,24 @@ public class DeckManager : MonoBehaviour
         var tmpl = RandomCardTemplates[idx];
         return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
     }
+
+    /// <summary>Creates one crisis crisis-resolution / resource card (for Systems Stress Test reward bias).</summary>
+    public static CardData CreateRandomCrisisResolutionOrResourceCard()
+    {
+        int idx = UnityEngine.Random.Range(0, StressTestRewardTemplates.Length);
+        var tmpl = StressTestRewardTemplates[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
+    /// <summary>Creates one strict crisis card (to be drawn directly into the player's hand).</summary>
+    public static CardData CreateRandomCrisisCard()
+    {
+        var crisisCards = System.Array.FindAll(AllCardTemplates, c => c.cat == CardData.CardCategory.Crisis);
+        int idx = UnityEngine.Random.Range(0, crisisCards.Length);
+        var tmpl = crisisCards[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
 
     // -----------------------------------------------------------------------
     // UI Feedback

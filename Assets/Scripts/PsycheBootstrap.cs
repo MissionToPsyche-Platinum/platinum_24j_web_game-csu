@@ -31,11 +31,19 @@ public static class PsycheBootstrap
 
     private static void ProcessScene(Scene scene)
     {
+        if (IsOptionsScene(scene))
+        {
+            CleanupDontDestroyOnLoadForOptionsScene();
+            DestroyAutoResourceHud();
+            return;
+        }
+
         EnsureResourceManager();
 
         if (IsMenuStyleScene(scene))
         {
             DestroyAutoResourceHud();
+            AudioVolumeApplicator.ApplyAll();
             return;
         }
 
@@ -43,6 +51,55 @@ public static class PsycheBootstrap
         var existingGameHud = UnityEngine.Object.FindFirstObjectByType<GameHUD>();
         if (existingResourceHud == null && existingGameHud == null)
             CreateSimpleHud();
+
+        AudioVolumeApplicator.ApplyAll();
+    }
+
+    /// <summary>Standalone Options scene: no gameplay singletons; strip leftover DDOL objects from prior scenes.</summary>
+    private static bool IsOptionsScene(Scene scene)
+    {
+        if (!scene.IsValid())
+            return false;
+        if (string.Equals(scene.name, "Options", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!string.IsNullOrEmpty(scene.path) &&
+            scene.path.IndexOf("Options.unity", StringComparison.OrdinalIgnoreCase) >= 0)
+            return true;
+        return false;
+    }
+
+    private static void CleanupDontDestroyOnLoadForOptionsScene()
+    {
+        var rms = UnityEngine.Object.FindObjectsByType<ResourceManager>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var rm in rms)
+        {
+            if (rm != null)
+                UnityEngine.Object.Destroy(rm.gameObject);
+        }
+
+        var gms = UnityEngine.Object.FindObjectsByType<GameManager>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var gm in gms)
+        {
+            if (gm != null)
+                UnityEngine.Object.Destroy(gm.gameObject);
+        }
+
+        var ddol = SceneManager.GetSceneByName("DontDestroyOnLoad");
+        if (!ddol.isLoaded)
+            return;
+        var roots = ddol.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var root = roots[i];
+            if (root == null)
+                continue;
+            if (root.name.IndexOf("DebugUpdater", StringComparison.OrdinalIgnoreCase) >= 0)
+                UnityEngine.Object.Destroy(root);
+        }
+
+        AudioVolumeApplicator.ClearCache();
     }
 
     private static void EnsureResourceManager()

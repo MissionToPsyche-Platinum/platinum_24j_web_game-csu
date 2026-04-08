@@ -79,7 +79,7 @@ public class CardData : ScriptableObject
             case EffectType.GainBudget:          return $"+{effectValue} Budget";
             case EffectType.GainTime:            return $"+{effectValue} Time";
             case EffectType.ReducePowerCosts:    return "Power costs reduced this turn";
-            case EffectType.AddTurnStartPower:   return $"+{effectValue} Power each turn";
+            case EffectType.AddTurnStartPower:   return $"+{effectValue} turn-start Power (Nuclear Battery)";
             case EffectType.CollectSurface:      return $"+{effectValue} Surface data";
             case EffectType.CollectElemental:    return $"+{effectValue} Elemental data";
             case EffectType.CollectMagnetic:     return $"+{effectValue} Magnetic data";

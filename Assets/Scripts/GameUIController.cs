@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using TMPro;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Master UI controller for the main game scene.
@@ -51,6 +52,10 @@ public class GameUIController : MonoBehaviour
     private int _currentPhase = 1;
     private int _encountersCompletedInPhase = 0;
 
+    [Header("Debug / test (mission end screens)")]
+    [Tooltip("When enabled: − or numpad − opens Mission Failure; + (numpad +) or Shift+= opens Mission Success.")]
+    [SerializeField] private bool enableMissionEndTestHotkeys = true;
+
     private void Awake()
     {
         if (endTurnButton == null)
@@ -98,7 +103,10 @@ public class GameUIController : MonoBehaviour
 
         // Subscribe to ResourceManager events → update HUD
         if (ResourceManager.Instance != null)
+        {
             ResourceManager.Instance.OnResourcesChanged += OnResourcesChanged;
+            ResourceManager.Instance.OnMissionFailedByTime += OnMissionFailedByTime;
+        }
 
         // Subscribe to DeckManager events → update pile counts + feedback
         if (_deckManager != null)
@@ -116,9 +124,13 @@ public class GameUIController : MonoBehaviour
         if (_encounterManager != null)
         {
             _encounterManager.OnEncounterStarted += OnEncounterStarted;
-            _encounterManager.OnProgressChanged += OnProgressChanged;
-            _encounterManager.OnTurnAdvanced += OnTurnAdvanced;
+            _encounterManager.OnProgressChanged  += OnProgressChanged;
+            _encounterManager.OnTurnAdvanced     += OnTurnAdvanced;
             _encounterManager.OnEncounterComplete += OnEncounterComplete;
+            _encounterManager.OnCrisisActivated  += OnCrisisActivated;
+            _encounterManager.OnCrisisResolved   += OnCrisisResolved;
+            _encounterManager.OnBossProgressChanged += OnBossProgressChanged;
+            _encounterManager.OnStressTestProgressChanged += OnStressTestProgressChanged;
         }
 
         _cardRewardUI = GetComponentInChildren<CardRewardUI>(true);
@@ -131,13 +143,38 @@ public class GameUIController : MonoBehaviour
         RefreshAllUI();
     }
 
+    private void Update()
+    {
+        if (!enableMissionEndTestHotkeys)
+            return;
+
+        var kb = Keyboard.current;
+        if (kb == null)
+            return;
+
+        if (kb[Key.Minus].wasPressedThisFrame || kb[Key.NumpadMinus].wasPressedThisFrame)
+        {
+            MissionEndScreenUI.ShowFailure();
+            return;
+        }
+
+        bool plus = kb[Key.NumpadPlus].wasPressedThisFrame
+            || (kb[Key.Equals].wasPressedThisFrame
+                && (kb[Key.LeftShift].isPressed || kb[Key.RightShift].isPressed));
+        if (plus)
+            MissionEndScreenUI.ShowSuccess();
+    }
+
     private void OnDestroy()
     {
         if (endTurnButton != null)
             endTurnButton.onClick.RemoveListener(HandleEndTurn);
 
         if (ResourceManager.Instance != null)
+        {
             ResourceManager.Instance.OnResourcesChanged -= OnResourcesChanged;
+            ResourceManager.Instance.OnMissionFailedByTime -= OnMissionFailedByTime;
+        }
 
         if (_deckManager != null)
         {
@@ -148,9 +185,13 @@ public class GameUIController : MonoBehaviour
         if (_encounterManager != null)
         {
             _encounterManager.OnEncounterStarted -= OnEncounterStarted;
-            _encounterManager.OnProgressChanged -= OnProgressChanged;
-            _encounterManager.OnTurnAdvanced -= OnTurnAdvanced;
+            _encounterManager.OnProgressChanged  -= OnProgressChanged;
+            _encounterManager.OnTurnAdvanced     -= OnTurnAdvanced;
             _encounterManager.OnEncounterComplete -= OnEncounterComplete;
+            _encounterManager.OnCrisisActivated  -= OnCrisisActivated;
+            _encounterManager.OnCrisisResolved   -= OnCrisisResolved;
+            _encounterManager.OnBossProgressChanged -= OnBossProgressChanged;
+            _encounterManager.OnStressTestProgressChanged -= OnStressTestProgressChanged;
         }
 
         if (_cardRewardUI != null)
@@ -166,6 +207,11 @@ public class GameUIController : MonoBehaviour
     private void OnResourcesChanged(int power, int budget, int time)
     {
         hudPanel?.UpdateResources(power, budget, time);
+    }
+
+    private void OnMissionFailedByTime()
+    {
+        MissionEndScreenUI.ShowFailure();
     }
 
     private void OnHandChanged()
@@ -206,7 +252,19 @@ public class GameUIController : MonoBehaviour
     {
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
-        // Overlays handled by CardRewardUI or other systems
+
+        if (success)
+        {
+            if (_cardRewardUI != null)
+            {
+                // The CardRewardPanel starts inactive so its self-subscription never fires.
+                // Activate it and trigger the reward flow directly.
+                _cardRewardUI.gameObject.SetActive(true);
+                _cardRewardUI.BeginRewards();
+            }
+            else
+                HandleRewardsComplete();
+        }
     }
 
     private void OnCrisisActivated(CardData.EffectType crisisType)
@@ -231,6 +289,18 @@ public class GameUIController : MonoBehaviour
         }
     }
 
+    private void OnBossProgressChanged(int maneuversCur, int maneuversMax, int budgetCur, int budgetMax)
+    {
+        encounterPanel?.SetBossProgress(
+            "MANEUVERS COMPLETED", maneuversCur, maneuversMax,
+            "BUDGET SPENT", budgetCur, budgetMax);
+    }
+
+    private void OnStressTestProgressChanged(int resolvedCur, int resolvedMax, int activeCur, int activeMax)
+    {
+        encounterPanel?.SetStressTestProgress(resolvedCur, resolvedMax, activeCur, activeMax);
+    }
+
     private void HandleRewardsComplete()
     {
         if (_encounterManager == null) return;
@@ -248,7 +318,7 @@ public class GameUIController : MonoBehaviour
         if (_currentPhase > 4)
         {
             Debug.Log("GAME WON! Mission Complete.");
-            // Ideally trigger a real win screen here
+            MissionEndScreenUI.ShowSuccess();
             return;
         }
 
@@ -278,26 +348,49 @@ public class GameUIController : MonoBehaviour
     {
         switch (_currentPhase)
         {
-            case 1: // Cruise Phase
-                int d1 = 5 + _encountersCompletedInPhase;
-                _encounterManager.StartDataCollectionEncounter($"Collect {d1} Surface Data", d1, 6 + _encountersCompletedInPhase);
+            case 1: // Cruise Phase — randomly roll encounter type
+            {
+                int target = 5 + _encountersCompletedInPhase;
+                int turns = 6 + _encountersCompletedInPhase;
+                RollRandomEncounter(target, turns);
                 // 30% chance for a crisis after the first tutorial encounter
                 if (_encountersCompletedInPhase > 0 && UnityEngine.Random.value < 0.3f)
                     _encounterManager.TriggerRandomCrisis();
                 break;
+            }
             case 2: // Orbit Insertion
                 _encounterManager.StartOrbitInsertionBoss(8);
                 break;
-            case 3: // Science Operations
-                int d3 = 8 + _encountersCompletedInPhase;
-                _encounterManager.StartDataCollectionEncounter($"Collect {d3} Elemental Data", d3, 8 + _encountersCompletedInPhase);
+            case 3: // Science Operations — randomly roll encounter type
+            {
+                int target = 8 + _encountersCompletedInPhase;
+                int turns = 8 + _encountersCompletedInPhase;
+                RollRandomEncounter(target, turns);
                 // 50% chance for a crisis in Science Ops
                 if (UnityEngine.Random.value < 0.5f)
                     _encounterManager.TriggerRandomCrisis();
                 break;
+            }
             case 4: // Mission Review
                 _encounterManager.StartMissionReviewBoss(10);
                 break;
+        }
+    }
+
+    /// <summary>Randomly picks an encounter type for non-boss phases.</summary>
+    private void RollRandomEncounter(int target, int turns)
+    {
+        float roll = UnityEngine.Random.value;
+        if (roll < 0.6f)
+        {
+            // Data Collection (60%)
+            _encounterManager.StartDataCollectionEncounter(
+                $"Collect {target} Data (any type)", target, turns);
+        }
+        else
+        {
+            // Systems Stress Test (40%)
+            _encounterManager.StartSystemsStressTestEncounter(999);
         }
     }
 

@@ -9,6 +9,7 @@ public class CardView : MonoBehaviour
 
     [Header("Legacy Components (hidden when full card art is available)")]
     [SerializeField] private TMP_Text title;
+    [SerializeField] private TMP_Text typeText;
     [SerializeField] private TMP_Text description;
     [SerializeField] private TMP_Text cost;
     [SerializeField] private Image cardArtImage; 
@@ -34,7 +35,16 @@ public class CardView : MonoBehaviour
         {
             if (wrapper != null) wrapper.SetActive(true);
             if (fullCardImage != null) fullCardImage.enabled = false;
+            
             if (title != null) title.text = data.cardName;
+            
+            if (typeText == null && wrapper != null)
+            {
+                var tr = wrapper.transform.Find("Type_Text");
+                if (tr != null) typeText = tr.GetComponent<TMP_Text>();
+            }
+            if (typeText != null) typeText.text = data.type.ToString().ToUpperInvariant();
+            
             if (description != null) description.text = data.description;
             if (cost != null) cost.text = $"{data.costPower}/{data.costBudget}/{data.costTime}";
             if (cardArtImage != null) cardArtImage.sprite = null;

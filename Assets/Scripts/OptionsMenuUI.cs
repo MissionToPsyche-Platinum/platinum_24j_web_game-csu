@@ -165,12 +165,15 @@ public class OptionsMenuUI : MonoBehaviour
 
     private void HandleReturnClicked()
     {
-        // Navigates back using your project's existing navigation logic
+        if (OptionsOverlayController.HideIfVisible())
+            return;
         OptionsNavigation.ReturnToPreviousOrFallback();
     }
 
     private void HandleMainMenuClicked()
     {
+        if (OptionsOverlayController.HideAndShowMainMenu())
+            return;
         OptionsNavigation.LoadMainMenu();
     }
 

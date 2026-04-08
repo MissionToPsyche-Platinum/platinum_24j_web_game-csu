@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ea7822debdbe45a3b424369cd65e56d, type: 3}
+  m_Name: Deep Space Optical Comms
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: Deep Space Optical Comms
+  type: 1
+  category: 1
+  costPower: 3
+  costBudget: 0
+  costTime: 1
+  description: Draw 2 cards
+  dataValue: 0
+  cardArt: {fileID: 21300000, guid: 23b4815adad7f6849a2e8e15f5f8d14a, type: 3}
+  effectType: 23
+  effectValue: 2
+  effectValue2: 0

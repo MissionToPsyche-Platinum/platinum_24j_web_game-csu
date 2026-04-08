@@ -1,10 +1,15 @@
+using System;
 using UnityEngine;
-using TMPro;
 
 public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
     public System.Action<int, int, int> OnResourcesChanged;
+
+    /// <summary>Fired once when Time reaches 0 (mission failure condition).</summary>
+    public event Action OnMissionFailedByTime;
+
+    private bool _missionFailureByTimeDispatched;
 
     [Header("Resource Values")]
     public int power = 4;
@@ -29,6 +34,15 @@ public class ResourceManager : MonoBehaviour
     public void UpdateUI()
     {
         OnResourcesChanged?.Invoke(power, budget, time);
+        NotifyMissionFailureByTimeIfNeeded();
+    }
+
+    private void NotifyMissionFailureByTimeIfNeeded()
+    {
+        if (time > 0 || _missionFailureByTimeDispatched)
+            return;
+        _missionFailureByTimeDispatched = true;
+        OnMissionFailedByTime?.Invoke();
     }
 // --- ADDED METHODS TO FIX CS1061 ERRORS ---
     public void AddPower(int amount) 
@@ -91,6 +105,7 @@ public class ResourceManager : MonoBehaviour
         power = startPower;
         budget = startBudget;
         time = startTime;
+        _missionFailureByTimeDispatched = false;
         UpdateUI();
     }
     

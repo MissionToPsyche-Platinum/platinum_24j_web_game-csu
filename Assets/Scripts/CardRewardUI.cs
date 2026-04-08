@@ -58,22 +58,13 @@ public class CardRewardUI : MonoBehaviour
 
     private void Start()
     {
-        SubscribeToEncounter();
+        // Subscription to OnEncounterComplete is handled by GameUIController,
+        // which activates this panel and calls BeginRewards() directly.
     }
 
     private void OnEnable()
     {
-        SubscribeToEncounter();
-    }
-
-    private void SubscribeToEncounter()
-    {
-        if (_subscribed) return;
-        if (EncounterManager.Instance != null)
-        {
-            EncounterManager.Instance.OnEncounterComplete += OnEncounterComplete;
-            _subscribed = true;
-        }
+        // No self-subscription needed; GameUIController drives the reward flow.
     }
 
     private void Update()
@@ -94,20 +85,14 @@ public class CardRewardUI : MonoBehaviour
         if (IsRewardPanelOpen)
             IsRewardPanelOpen = false;
 
-        if (EncounterManager.Instance != null)
-            EncounterManager.Instance.OnEncounterComplete -= OnEncounterComplete;
-
         if (skipButton != null)
             skipButton.onClick.RemoveListener(OnSkip);
     }
 
-    private void OnEncounterComplete(bool success)
-    {
-        if (!success) return;
-        BeginRewards();
-    }
+    // OnEncounterComplete is no longer self-subscribed.
+    // GameUIController calls BeginRewards() directly.
 
-    private void BeginRewards()
+    public void BeginRewards()
     {
         _currentRound = 0;
         transform.SetAsLastSibling();
@@ -129,9 +114,19 @@ public class CardRewardUI : MonoBehaviour
         _options = new CardData[cardsPerRound];
         _optionViews = new GameObject[cardsPerRound];
 
+        bool biasApplied = false;
+
         for (int i = 0; i < cardsPerRound; i++)
         {
-            _options[i] = DeckManager.CreateRandomRuntimeCard();
+            if (!biasApplied && EncounterManager.Instance != null && EncounterManager.Instance.LastEncounterWasStressTest)
+            {
+                _options[i] = DeckManager.CreateRandomCrisisResolutionOrResourceCard();
+                biasApplied = true;
+            }
+            else
+            {
+                _options[i] = DeckManager.CreateRandomRuntimeCard();
+            }
 
             var go = Instantiate(cardPrefab, cardSlotContainer);
             _optionViews[i] = go;
