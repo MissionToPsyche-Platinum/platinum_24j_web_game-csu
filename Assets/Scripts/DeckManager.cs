@@ -38,6 +38,12 @@ public class DeckManager : MonoBehaviour
     [Tooltip("When set, this deck spends Power/Budget/Time and applies Gain* card effects on the AI wallet instead of ResourceManager.")]
     [SerializeField] private OpponentAIController aiResourceWallet;
 
+    [Header("Draw Animation")]
+    [Tooltip("Seconds for the card-draw slide animation. Set to 0 to disable.")]
+    [SerializeField] private float drawAnimDuration = 0.25f;
+    [Tooltip("Optional: cards animate FROM this transform (e.g. the deck pile UI element). Leave unset to use the lower-left of the hand area.")]
+    [SerializeField] private RectTransform drawAnimOrigin;
+
     /// <summary>True when this deck is wired as the computer's deck (uses <see cref="aiResourceWallet"/>).</summary>
     public bool UsesAiResourceWallet => aiResourceWallet != null;
 
@@ -126,6 +132,17 @@ public class DeckManager : MonoBehaviour
         return list;
     }
 
+    /// <summary>
+    /// Returns discard pile cards in newest-first order (most recently discarded at top-left).
+    /// </summary>
+    public List<CardData> GetDiscardPileOrderedNewestFirst()
+    {
+        var list = new List<CardData>(_discard.Count);
+        for (int i = _discard.Count - 1; i >= 0; i--)
+            list.Add(_discard[i]);
+        return list;
+    }
+
     // --- Events ---
     /// <summary>Fired when the hand changes (card drawn or played).</summary>
     public event Action OnHandChanged;
@@ -210,6 +227,8 @@ public class DeckManager : MonoBehaviour
             return;
         }
 
+        int prevViewCount = _handViews.Count;
+
         for (int i = 0; i < count; i++)
         {
             if (_deck.Count == 0)
@@ -228,6 +247,59 @@ public class DeckManager : MonoBehaviour
 
         RefreshHandLayout();
         OnHandChanged?.Invoke();
+
+        if (!UsesAiResourceWallet && drawAnimDuration > 0f && _handViews.Count > prevViewCount)
+            StartCoroutine(CoAnimateDrawnCards(prevViewCount));
+    }
+
+    private IEnumerator CoAnimateDrawnCards(int firstNewIndex)
+    {
+        var parentRT = handParent as RectTransform ?? handParent?.GetComponent<RectTransform>();
+
+        // Determine where cards animate FROM in handParent local space.
+        Vector2 startPos;
+        if (drawAnimOrigin != null && parentRT != null)
+        {
+            startPos = (Vector2)parentRT.InverseTransformPoint(drawAnimOrigin.position);
+        }
+        else if (parentRT != null)
+        {
+            // Default: bottom-left edge of the hand rect, slightly below it.
+            startPos = new Vector2(parentRT.rect.xMin, parentRT.rect.yMin - 80f);
+        }
+        else
+        {
+            startPos = new Vector2(-400f, -300f);
+        }
+
+        // Capture each new card's target position, then snap it to the start.
+        var animData = new List<(RectTransform rt, Vector2 target)>();
+        for (int i = firstNewIndex; i < _handViews.Count; i++)
+        {
+            var go = _handViews[i];
+            if (go == null) continue;
+            var rt = go.GetComponent<RectTransform>();
+            if (rt == null) continue;
+            animData.Add((rt, rt.anchoredPosition));
+            rt.anchoredPosition = startPos;
+        }
+
+        if (animData.Count == 0) yield break;
+
+        // Animate all new cards simultaneously.
+        float elapsed = 0f;
+        while (elapsed < drawAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / drawAnimDuration));
+            foreach (var (rt, target) in animData)
+                if (rt != null) rt.anchoredPosition = Vector2.Lerp(startPos, target, t);
+            yield return null;
+        }
+
+        // Snap to exact final positions.
+        foreach (var (rt, target) in animData)
+            if (rt != null) rt.anchoredPosition = target;
     }
 
     /// <summary>Moves all remaining hand cards to the discard pile (end of turn).</summary>
@@ -255,6 +327,16 @@ public class DeckManager : MonoBehaviour
             RemoveCardViewAt(i);
         }
         RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Shuffles the entire discard pile back into the deck. Call between encounters to reset the draw pile.</summary>
+    public void RecycleDiscardToDeck()
+    {
+        foreach (var c in _discard)
+            _deck.Add(c);
+        _discard.Clear();
+        ShuffleDeck();
         OnHandChanged?.Invoke();
     }
 
@@ -313,11 +395,7 @@ public class DeckManager : MonoBehaviour
     {
         if (handIndex < 0 || handIndex >= _hand.Count) return false;
         var card = _hand[handIndex];
-        if (card.category == CardData.CardCategory.Crisis)
-        {
-            ShowFeedback("Resolve crisis cards using the crisis panel — they stay in hand until resolved.");
-            return false;
-        }
+
         if (UsesAiResourceWallet)
         {
             if (aiResourceWallet == null) return false;
