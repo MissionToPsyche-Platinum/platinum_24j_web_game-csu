@@ -58,6 +58,12 @@ public class CardData : ScriptableObject
         CrisisBlockDataCollection,
         /// <summary>Next played Maneuver is blocked (fails without cost) once (Debris Field).</summary>
         CrisisBlockNextManeuver,
+
+        /// <summary>Next player turn loses draw phase unless resolved with 4 Power (Computer Reboot).</summary>
+        CrisisComputerReboot,
+
+        /// <summary>Lose effectValue Budget immediately; may pay 3 Time later for effectValue2 Budget (Budget Cut).</summary>
+        CrisisBudgetCut,
     }
     public EffectType effectType;
 
@@ -73,7 +79,7 @@ public class CardData : ScriptableObject
             case EffectType.GainBudget:          return $"+{effectValue} Budget";
             case EffectType.GainTime:            return $"+{effectValue} Time";
             case EffectType.ReducePowerCosts:    return "Power costs reduced this turn";
-            case EffectType.AddTurnStartPower:   return $"+{effectValue} Power each turn";
+            case EffectType.AddTurnStartPower:   return $"+{effectValue} turn-start Power (Nuclear Battery)";
             case EffectType.CollectSurface:      return $"+{effectValue} Surface data";
             case EffectType.CollectElemental:    return $"+{effectValue} Elemental data";
             case EffectType.CollectMagnetic:     return $"+{effectValue} Magnetic data";
@@ -98,11 +104,13 @@ public class CardData : ScriptableObject
             case EffectType.LoseProgress:        return $"-{effectValue} Progress";
             case EffectType.SkipTurn:            return "Skip next turn";
             case EffectType.DiscardRandom:       return $"Discard {effectValue} cards";
-            case EffectType.CrisisSolarStorm:    return $"Crisis: -{effectValue} Power/turn";
+            case EffectType.CrisisSolarStorm:    return $"Crisis: -{effectValue} extra Time/turn";
             case EffectType.CrisisThrusterTax:   return "Crisis: Maneuvers cost +Power";
             case EffectType.CrisisBlockDrawOnce: return "Crisis: skip next draw";
             case EffectType.CrisisBlockDataCollection: return "Crisis: data collection blocked";
-            case EffectType.CrisisBlockNextManeuver: return "Crisis: next Maneuver fails";
+            case EffectType.CrisisBlockNextManeuver: return "Crisis: Maneuvers blocked until resolved";
+            case EffectType.CrisisComputerReboot: return "Crisis: lose next turn's draw";
+            case EffectType.CrisisBudgetCut:     return $"Crisis: -{effectValue} Budget (restore opt.)";
             default:                             return "";
         }
     }

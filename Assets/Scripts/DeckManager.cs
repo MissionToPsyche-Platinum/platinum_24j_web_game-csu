@@ -27,11 +27,11 @@ public class DeckManager : MonoBehaviour
     public GameObject feedbackMessageTarget;
 
     [Header("Starting deck (assign CardData assets)")]
-    [Tooltip("Cards to shuffle into the deck at run start. Leave empty to use Draw Phase: 5 random runtime cards.")]
+    [Tooltip("Optional override: shuffle these into the deck at run start. If empty (player deck), uses design doc §8 — 10 cards (4× Solar Array Deploy, 2× Budget Request, 2× Multispectral Imager, 1× Trajectory Correction, 1× Compositional Analysis). AI deck still uses random cards when empty.")]
     public List<CardData> startingDeck = new List<CardData>();
 
-    [Header("Draw Phase: random card pool (used when startingDeck is empty)")]
-    [Tooltip("Number of random cards to generate and place in hand at game start.")]
+    [Header("Opening hand")]
+    [Tooltip("Cards drawn after the deck is shuffled at game start (design doc: draw up to 5).")]
     public int drawPhaseCardCount = 5;
 
     [Header("Optional: AI opponent deck")]
@@ -50,12 +50,12 @@ public class DeckManager : MonoBehaviour
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] AllCardTemplates =
     {
         // ── Resource ──
-        ("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, 0, CardData.CardCategory.Resource, "CardArt/solar array deploy"),
-        ("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, 0, CardData.CardCategory.Resource, "CardArt/budget request card"),
+        ("Solar Array Deploy", "Gain 3 Power this turn", 0, 0, 0, CardData.EffectType.GainPower, 3, 0, CardData.CardCategory.Resource, "CardArt/solar array deploy"),
+        ("Budget Request", "Gain 3 Budget this turn", 0, 0, 1, CardData.EffectType.GainBudget, 3, 0, CardData.CardCategory.Resource, "CardArt/budget request card"),
         ("Mission Extension", "Gain 5 Time", 0, 3, 0, CardData.EffectType.GainTime, 5, 0, CardData.CardCategory.Resource, "CardArt/mission extension"),
-        ("Nuclear Battery", "+2 Power at the start of each turn", 0, 2, 0, CardData.EffectType.AddTurnStartPower, 2, 0, CardData.CardCategory.Resource, "CardArt/nuclear battery"),
+        ("Nuclear Battery", "Raise Power reset ceiling by +1 (max +2 total)", 0, 2, 0, CardData.EffectType.AddTurnStartPower, 1, 0, CardData.CardCategory.Resource, "CardArt/nuclear battery"),
         ("Power Conservation", "All Power costs reduced by 1 this turn", 0, 0, 1, CardData.EffectType.ReducePowerCosts, 1, 0, CardData.CardCategory.Resource, "CardArt/Power Conservation"),
-        ("Emergency Fund", "Gain 2 Budget", 0, 0, 0, CardData.EffectType.GainBudget, 2, 0, CardData.CardCategory.Resource, "CardArt/emergency fund"),
+        ("Emergency Fund", "Gain 2 Budget immediately (Crisis only)", 0, 0, 0, CardData.EffectType.GainBudget, 2, 0, CardData.CardCategory.Resource, "CardArt/emergency fund"),
 
         // ── Instrument ──
         ("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, 0, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
@@ -66,12 +66,12 @@ public class DeckManager : MonoBehaviour
         ("Multi-Instrument Suite", "Collect 1 of each data type", 4, 0, 2, CardData.EffectType.CollectAllData, 1, 0, CardData.CardCategory.Instrument, "CardArt/Multi-Instrument Suite"),
 
         // ── Maneuver ──
-        ("Trajectory Correction", "Adjust orbital phase (+1 progress)", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
-        ("Orbit Insertion Burn", "Enter stable orbit (+4 progress)", 5, 3, 0, CardData.EffectType.OrbitInsertion, 4, 0, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
-        ("Altitude Adjustment", "Next Instrument collects +1 data", 3, 2, 0, CardData.EffectType.BonusNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
+        ("Trajectory Correction", "Adjust orbital phase", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"),
+        ("Orbit Insertion Burn", "Enter stable orbit (enables advanced instruments)", 5, 3, 0, CardData.EffectType.OrbitInsertion, 4, 0, CardData.CardCategory.Maneuver, "CardArt/Orbit Insertion Burn"),
+        ("Altitude Adjustment", "Move altitude bands (+1 bonus to next Instrument)", 3, 2, 0, CardData.EffectType.BonusNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Altitude Adjustment"),
         ("Reaction Wheel Reset", "Prevent penalty on next Instrument card", 1, 0, 0, CardData.EffectType.PreventPenalty, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Reaction Wheel Reset"),
-        ("Close Approach Flyby", "Next Instrument collects double data", 4, 2, 0, CardData.EffectType.DoubleNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
-        ("Safe Mode Recovery", "Clear all active crisis effects", 2, 0, 2, CardData.EffectType.CancelCrisis, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Safe Mode Recovery"),
+        ("Close Approach Flyby", "Next Instrument collects double data (Risk: Crisis)", 4, 2, 0, CardData.EffectType.DoubleNextInstrument, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Close Approach Flyby"),
+        ("Safe Mode Recovery", "Cancel 1 active Crisis effect", 2, 0, 2, CardData.EffectType.CancelCrisis, 1, 0, CardData.CardCategory.Maneuver, "CardArt/Safe Mode Recovery"),
 
         // ── Analysis ──
         ("Compositional Analysis", "Convert 3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"),
@@ -81,19 +81,33 @@ public class DeckManager : MonoBehaviour
         ("Comparative Planetology", "Convert any 5 data → a Conclusion", 0, 2, 2, CardData.EffectType.WildConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Comparative Planetology"),
         ("Peer Review Publication", "Upgrade 1 Conclusion to count as 2", 0, 3, 3, CardData.EffectType.UpgradeConclusion, 0, 0, CardData.CardCategory.Analysis, "CardArt/Peer Review Publication"),
 
-        // ── Crisis ──
-        ("Solar Storm Warning", "Crisis: lose 2 Power at each turn start", 0, 0, 0, CardData.EffectType.CrisisSolarStorm, 2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
-        ("Thruster Anomaly", "Crisis: Maneuver cards cost +1 Power", 0, 0, 0, CardData.EffectType.CrisisThrusterTax, 1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
-        ("Ground Station Conflict", "Crisis: skip your next draw phase", 0, 0, 0, CardData.EffectType.CrisisBlockDrawOnce, 1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
-        ("Data Storage Full", "Crisis: cannot collect instrument data until cleared", 0, 0, 0, CardData.EffectType.CrisisBlockDataCollection, 1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
-        ("Debris Field Detected", "Crisis: next Maneuver attempt fails (no cost)", 0, 0, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
-        ("Computer Reboot Required", "Crisis: advance turn immediately", 0, 0, 0, CardData.EffectType.SkipTurn, 1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
-        ("Budget Cut Notice", "Crisis: lose 3 Budget immediately", 0, 0, 0, CardData.EffectType.LoseBudget, 3, 0, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
+        // ── Crisis (penalty + resolve costs — see EncounterManager.TryResolve*) ──
+        ("Solar Storm Warning", "Lose 2 extra Time/turn (stacks). Resolve: 3 Power OR safe mode.", 0, 0, 0, CardData.EffectType.CrisisSolarStorm, 2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
+        ("Thruster Anomaly", "All Maneuvers cost +1 Power. Resolve: 2 Budget + 2 Time.", 0, 0, 0, CardData.EffectType.CrisisThrusterTax, 1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
+        ("Ground Station Conflict", "Cannot draw for 1 turn. Resolve: 2 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockDrawOnce, 1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
+        ("Data Storage Full", "Cannot collect data until resolved. Resolve: 2 Time (downlink).", 0, 0, 0, CardData.EffectType.CrisisBlockDataCollection, 1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
+        ("Debris Field Detected", "Next Maneuver fails unless resolved. Resolve: 3 Power + 1 Budget.", 0, 0, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
+        ("Computer Reboot Required", "Skip next turn entirely. Resolve: 4 Power (no turn lost).", 0, 0, 0, CardData.EffectType.CrisisComputerReboot, 1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
+        ("Budget Cut Notice", "Penalty: −3 Budget now. Resolve: 3 Time → +2 Budget.", 0, 0, 0, CardData.EffectType.CrisisBudgetCut, 3, 2, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
     };
 
     /// <summary>Non-crisis card templates for random deck building and rewards.</summary>
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] RandomCardTemplates =
         System.Array.FindAll(AllCardTemplates, c => c.cat != CardData.CardCategory.Crisis);
+
+    /// <summary>Resource and maneuver templates for stress test reward bias.</summary>
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] StressTestRewardTemplates =
+        System.Array.FindAll(AllCardTemplates, c => c.cat == CardData.CardCategory.Resource || c.cat == CardData.CardCategory.Maneuver);
+
+    /// <summary>Design document §8 — default player starting deck (10 cards), built from <see cref="AllCardTemplates"/>.</summary>
+    private static readonly string[] DefaultStartingDeckCardNames =
+    {
+        "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy",
+        "Budget Request", "Budget Request",
+        "Multispectral Imager", "Multispectral Imager",
+        "Trajectory Correction",
+        "Compositional Analysis"
+    };
 
     // --- Public properties ---
     public IReadOnlyList<CardData> Hand => _hand;
@@ -138,7 +152,16 @@ public class DeckManager : MonoBehaviour
         if (cardPrefab == null)
             cardPrefab = Resources.Load<GameObject>("CardView");
 
-        if (startingDeck != null && startingDeck.Count > 0)
+        bool hasExplicitStartingCards = false;
+        if (startingDeck != null)
+        {
+            foreach (var c in startingDeck)
+            {
+                if (c != null) { hasExplicitStartingCards = true; break; }
+            }
+        }
+
+        if (hasExplicitStartingCards)
         {
             _deck.Clear();
             foreach (var c in startingDeck)
@@ -146,15 +169,21 @@ public class DeckManager : MonoBehaviour
             ShuffleDeck();
             Draw(Mathf.Min(drawPhaseCardCount, _deck.Count));
         }
-        else
+        else if (UsesAiResourceWallet)
         {
-            // Draw Phase: generate N random cards and place in hand
+            // Opponent: no scripted starter — random non-crisis pool
             _deck.Clear();
             int count = Mathf.Clamp(drawPhaseCardCount, 1, 20);
             for (int i = 0; i < count; i++)
                 _deck.Add(CreateRandomRuntimeCard());
             ShuffleDeck();
             Draw(count);
+        }
+        else
+        {
+            BuildDesignDocStartingDeck();
+            ShuffleDeck();
+            Draw(Mathf.Min(drawPhaseCardCount, _deck.Count));
         }
 
         if (cardHandLayout != null)
@@ -201,6 +230,80 @@ public class DeckManager : MonoBehaviour
         OnHandChanged?.Invoke();
     }
 
+    /// <summary>Moves all remaining hand cards to the discard pile (end of turn).</summary>
+    public void DiscardHand()
+    {
+        for (int i = _hand.Count - 1; i >= 0; i--)
+        {
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+        }
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Discards non-crisis cards only. Crisis cards stay in hand until resolved (Systems Stress Test).</summary>
+    public void DiscardNonCrisisCards()
+    {
+        for (int i = _hand.Count - 1; i >= 0; i--)
+        {
+            if (_hand[i].category == CardData.CardCategory.Crisis)
+                continue;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+        }
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Adds a runtime crisis card to the hand (not drawn from the deck). Used by Systems Stress Test.</summary>
+    public void AddCrisisCardToHand(CardData card)
+    {
+        if (card == null || card.category != CardData.CardCategory.Crisis || UsesAiResourceWallet)
+            return;
+        _hand.Add(card);
+        SpawnCardView(card);
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>Removes the first crisis card matching the effect type (e.g. after paying resolve costs). Returns true if one was removed.</summary>
+    public bool RemoveFirstCrisisCardWithEffectType(CardData.EffectType effectType)
+    {
+        for (int i = 0; i < _hand.Count; i++)
+        {
+            if (_hand[i].category != CardData.CardCategory.Crisis || _hand[i].effectType != effectType)
+                continue;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+            RefreshHandLayout();
+            OnHandChanged?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Removes all crisis cards from hand (e.g. Safe Mode). Cards go to discard.</summary>
+    public void RemoveAllCrisisCardsFromHand()
+    {
+        bool any = false;
+        for (int i = _hand.Count - 1; i >= 0; i--)
+        {
+            if (_hand[i].category != CardData.CardCategory.Crisis)
+                continue;
+            any = true;
+            _discard.Add(_hand[i]);
+            _hand.RemoveAt(i);
+            RemoveCardViewAt(i);
+        }
+        if (!any) return;
+        RefreshHandLayout();
+        OnHandChanged?.Invoke();
+    }
+
     // -----------------------------------------------------------------------
     // Playing cards
     // -----------------------------------------------------------------------
@@ -210,6 +313,11 @@ public class DeckManager : MonoBehaviour
     {
         if (handIndex < 0 || handIndex >= _hand.Count) return false;
         var card = _hand[handIndex];
+        if (card.category == CardData.CardCategory.Crisis)
+        {
+            ShowFeedback("Resolve crisis cards using the crisis panel — they stay in hand until resolved.");
+            return false;
+        }
         if (UsesAiResourceWallet)
         {
             if (aiResourceWallet == null) return false;
@@ -226,8 +334,14 @@ public class DeckManager : MonoBehaviour
 
         if (card.category == CardData.CardCategory.Maneuver && em0 != null && em0.BlockNextManeuverPlay)
         {
-            ShowFeedback("Debris field — maneuver blocked!");
-            em0.NotifyManeuverPlayedSuccessfully();
+            ShowFeedback(em0.DebrisFieldCrisisActive
+                ? "Debris field — maneuvers blocked until you pay 3 Power & 1 Budget."
+                : "Maneuver blocked!");
+            return false;
+        }
+
+        if (!CanPlayCard(card))
+        {
             return false;
         }
 
@@ -293,6 +407,62 @@ public class DeckManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>Checks if the card's requirements (e.g. required data for analysis) are met.</summary>
+    private bool CanPlayCard(CardData card)
+    {
+        if (UsesAiResourceWallet) return true; // AI ignores requirements
+
+        var dt = DataTracker.Instance;
+        
+        switch (card.effectType)
+        {
+            case CardData.EffectType.CompositionConclusion:
+                if (dt == null || dt.Elemental < 3 || dt.Surface < 2)
+                {
+                    ShowFeedback("Need 3 Elemental & 2 Surface data.");
+                    return false;
+                }
+                break;
+            case CardData.EffectType.DynamoConclusion:
+                if (dt == null || dt.Magnetic < 4)
+                {
+                    ShowFeedback("Need 4 Magnetic data.");
+                    return false;
+                }
+                break;
+            case CardData.EffectType.InteriorConclusion:
+                if (dt == null || dt.Gravity < 3 || dt.Surface < 2)
+                {
+                    ShowFeedback("Need 3 Gravity & 2 Surface data.");
+                    return false;
+                }
+                break;
+            case CardData.EffectType.FormationConclusion:
+                if (dt == null || dt.Surface < 2 || dt.Elemental < 2 || dt.Magnetic < 2 || dt.Gravity < 2 || dt.Thermal < 2)
+                {
+                    ShowFeedback("Need 2 of each data type.");
+                    return false;
+                }
+                break;
+            case CardData.EffectType.WildConclusion:
+                if (dt == null || dt.TotalData < 5)
+                {
+                    ShowFeedback("Need any 5 data total.");
+                    return false;
+                }
+                break;
+            case CardData.EffectType.UpgradeConclusion:
+                if (dt == null || dt.TotalConclusions <= 0)
+                {
+                    ShowFeedback("No conclusions to upgrade.");
+                    return false;
+                }
+                break;
+        }
+        
+        return true;
+    }
+
     // -----------------------------------------------------------------------
     // Effect application — handles ALL CardData.EffectType values
     // -----------------------------------------------------------------------
@@ -302,6 +472,9 @@ public class DeckManager : MonoBehaviour
         var rm = ResourceManager.Instance;
         var dt = DataTracker.Instance;
         var em = EncounterManager.Instance;
+
+        // AI decks only affect their own resource wallet — skip encounter progress and data tracker.
+        bool isAiPlay = UsesAiResourceWallet;
 
         switch (card.effectType)
         {
@@ -319,77 +492,83 @@ public class DeckManager : MonoBehaviour
                 else rm?.AddTime(card.effectValue);
                 break;
             case CardData.EffectType.ReducePowerCosts:
-                if (em != null) em.ReducePowerCostsThisTurn = true;
+                if (!isAiPlay && em != null) em.ReducePowerCostsThisTurn = true;
                 break;
             case CardData.EffectType.AddTurnStartPower:
-                em?.AddTurnStartPowerBonus(card.effectValue);
+                if (!isAiPlay) em?.AddTurnStartPowerBonus(card.effectValue);
                 break;
 
-            // === Instrument effects — collect data ===
+            // === Instrument effects — collect data (AI skips — no shared progress) ===
             case CardData.EffectType.CollectSurface:
-                CollectDataWithBonuses(DataTracker.DataType.Surface, card.effectValue);
+                if (!isAiPlay) CollectDataWithBonuses(DataTracker.DataType.Surface, card.effectValue);
                 break;
             case CardData.EffectType.CollectElemental:
-                CollectDataWithBonuses(DataTracker.DataType.Elemental, card.effectValue);
+                if (!isAiPlay) CollectDataWithBonuses(DataTracker.DataType.Elemental, card.effectValue);
                 break;
             case CardData.EffectType.CollectMagnetic:
-                CollectDataWithBonuses(DataTracker.DataType.Magnetic, card.effectValue);
+                if (!isAiPlay) CollectDataWithBonuses(DataTracker.DataType.Magnetic, card.effectValue);
                 break;
             case CardData.EffectType.CollectGravity:
-                CollectDataWithBonuses(DataTracker.DataType.Gravity, card.effectValue);
+                if (!isAiPlay) CollectDataWithBonuses(DataTracker.DataType.Gravity, card.effectValue);
                 break;
             case CardData.EffectType.CollectAllData:
-                int allAmount = card.effectValue > 0 ? card.effectValue : 1;
-                if (em != null && em.DoubleNextInstrument) { allAmount *= 2; em.DoubleNextInstrument = false; }
-                if (em != null && em.BonusNextInstrument) { allAmount += 1; em.BonusNextInstrument = false; }
-                dt?.AddAllData(allAmount);
-                em?.AddProgress(allAmount);
+                if (!isAiPlay)
+                {
+                    int allAmount = card.effectValue > 0 ? card.effectValue : 1;
+                    if (em != null && em.DoubleNextInstrument) { allAmount *= 2; em.DoubleNextInstrument = false; }
+                    if (em != null && em.BonusNextInstrument) { allAmount += 1; em.BonusNextInstrument = false; }
+                    dt?.AddAllData(allAmount);
+                    em?.AddProgress(allAmount);
+                }
                 break;
 
-            // === Maneuver effects ===
+            // === Maneuver effects (AI skips encounter state) ===
             case CardData.EffectType.AdjustOrbit:
-                em?.AddProgress(card.effectValue);
+                if (!isAiPlay) em?.AddProgress(card.effectValue);
                 break;
             case CardData.EffectType.OrbitInsertion:
-                em?.AddProgress(card.effectValue > 0 ? card.effectValue : 3);
-                em?.SetStableOrbitAchieved();
+                if (!isAiPlay)
+                {
+                    em?.AddProgress(card.effectValue > 0 ? card.effectValue : 3);
+                    em?.SetStableOrbitAchieved();
+                }
                 break;
             case CardData.EffectType.BonusNextInstrument:
-                if (em != null) em.BonusNextInstrument = true;
+                if (!isAiPlay && em != null) em.BonusNextInstrument = true;
                 break;
             case CardData.EffectType.PreventPenalty:
-                if (em != null) em.PreventNextPenalty = true;
+                if (!isAiPlay && em != null) em.PreventNextPenalty = true;
                 break;
             case CardData.EffectType.DoubleNextInstrument:
-                if (em != null) em.DoubleNextInstrument = true;
+                if (!isAiPlay && em != null) em.DoubleNextInstrument = true;
                 break;
             case CardData.EffectType.CancelCrisis:
-                em?.ClearAllCrisisEffects();
+                if (!isAiPlay) em?.ClearAllCrisisEffects();
                 break;
 
-            // === Analysis effects — convert data into conclusions ===
+            // === Analysis effects (AI skips — no shared data/progress) ===
             case CardData.EffectType.CompositionConclusion:
-                if (dt != null && dt.TryComposition())
+                if (!isAiPlay && dt != null && dt.TryComposition())
                     em?.AddProgress(1);
                 break;
             case CardData.EffectType.DynamoConclusion:
-                if (dt != null && dt.TryDynamo())
+                if (!isAiPlay && dt != null && dt.TryDynamo())
                     em?.AddProgress(1);
                 break;
             case CardData.EffectType.InteriorConclusion:
-                if (dt != null && dt.TryInterior())
+                if (!isAiPlay && dt != null && dt.TryInterior())
                     em?.AddProgress(1);
                 break;
             case CardData.EffectType.FormationConclusion:
-                if (dt != null && dt.TryFormation())
+                if (!isAiPlay && dt != null && dt.TryFormation())
                     em?.AddProgress(1);
                 break;
             case CardData.EffectType.WildConclusion:
-                if (dt != null && dt.TryWildConclusion())
+                if (!isAiPlay && dt != null && dt.TryWildConclusion())
                     em?.AddProgress(1);
                 break;
             case CardData.EffectType.UpgradeConclusion:
-                dt?.TryUpgradeConclusion();
+                if (!isAiPlay) dt?.TryUpgradeConclusion();
                 break;
 
             // === Utility ===
@@ -398,40 +577,48 @@ public class DeckManager : MonoBehaviour
                 if (drawCount > 0) Draw(drawCount);
                 break;
 
-            // === Crisis / Negative Events ===
+            // === Crisis / Negative Events (AI skips — these target the player) ===
             case CardData.EffectType.LosePower:
-                if (rm != null) rm.AddPower(-card.effectValue);
+                if (!isAiPlay && rm != null) rm.AddPower(-card.effectValue);
                 break;
             case CardData.EffectType.LoseBudget:
-                if (rm != null) rm.AddBudget(-card.effectValue);
+                if (!isAiPlay && rm != null) rm.AddBudget(-card.effectValue);
                 break;
             case CardData.EffectType.LoseTime:
-                if (rm != null) rm.AddTime(-card.effectValue);
+                if (!isAiPlay && rm != null) rm.AddTime(-card.effectValue);
                 break;
             case CardData.EffectType.LoseProgress:
-                if (em != null) em.AddProgress(-card.effectValue);
+                if (!isAiPlay && em != null) em.AddProgress(-card.effectValue);
                 break;
             case CardData.EffectType.SkipTurn:
-                if (em != null) em.AdvanceTurn();
+                if (!isAiPlay && em != null) em.AdvanceTurn();
                 break;
             case CardData.EffectType.DiscardRandom:
-                DiscardRandomCards(card.effectValue);
+                if (!isAiPlay) DiscardRandomCards(card.effectValue);
                 break;
 
             case CardData.EffectType.CrisisSolarStorm:
-                em?.AddPowerDrainPerTurn(card.effectValue);
+                if (!isAiPlay) em?.AddSolarStormExtraTimeDrain(card.effectValue);
                 break;
             case CardData.EffectType.CrisisThrusterTax:
-                em?.AddExtraManeuverPowerCost(card.effectValue);
+                if (!isAiPlay) em?.ActivateThrusterAnomaly(card.effectValue > 0 ? card.effectValue : 1);
                 break;
             case CardData.EffectType.CrisisBlockDrawOnce:
-                em?.SetSkipDrawOnce();
+                if (!isAiPlay) em?.ActivateGroundStationConflict();
                 break;
             case CardData.EffectType.CrisisBlockDataCollection:
-                em?.SetBlockInstrumentData(true);
+                if (!isAiPlay) em?.ActivateDataStorageFull();
                 break;
             case CardData.EffectType.CrisisBlockNextManeuver:
-                em?.SetBlockNextManeuverPlay();
+                if (!isAiPlay) em?.ActivateDebrisField();
+                break;
+            case CardData.EffectType.CrisisComputerReboot:
+                if (!isAiPlay) em?.ActivateComputerRebootCrisis();
+                break;
+            case CardData.EffectType.CrisisBudgetCut:
+                if (!isAiPlay) em?.ActivateBudgetCut(
+                    card.effectValue > 0 ? card.effectValue : 3,
+                    card.effectValue2 > 0 ? card.effectValue2 : 2);
                 break;
 
             case CardData.EffectType.None:
@@ -444,7 +631,19 @@ public class DeckManager : MonoBehaviour
     {
         for (int i = 0; i < count && _hand.Count > 0; i++)
         {
-            int idx = UnityEngine.Random.Range(0, _hand.Count);
+            int idx = -1;
+            int guard = 0;
+            while (guard++ < 64 && _hand.Count > 0)
+            {
+                int tryIdx = UnityEngine.Random.Range(0, _hand.Count);
+                if (_hand[tryIdx].category != CardData.CardCategory.Crisis)
+                {
+                    idx = tryIdx;
+                    break;
+                }
+            }
+            if (idx < 0)
+                break;
             var discarded = _hand[idx];
             _hand.RemoveAt(idx);
             RemoveCardViewAt(idx);
@@ -525,17 +724,34 @@ public class DeckManager : MonoBehaviour
         }
     }
 
-    private void SetupTestDeck()
+    /// <summary>§8 Starting Deck — 10 runtime <see cref="CardData"/> instances from <see cref="AllCardTemplates"/>.</summary>
+    private void BuildDesignDocStartingDeck()
     {
         _deck.Clear();
-        for (int i = 0; i < 4; i++)
-            _deck.Add(CreateRuntimeCard("Solar Array Deploy", "Gain 3 Power", 0, 0, 0, CardData.EffectType.GainPower, 3, CardData.CardCategory.Resource, "CardArt/solar array deploy"));
-        for (int i = 0; i < 2; i++)
-            _deck.Add(CreateRuntimeCard("Budget Request", "Gain 3 Budget", 0, 0, 1, CardData.EffectType.GainBudget, 3, CardData.CardCategory.Resource, "CardArt/budget request card"));
-        for (int i = 0; i < 2; i++)
-            _deck.Add(CreateRuntimeCard("Multispectral Imager", "Collect 2 Surface data", 2, 0, 1, CardData.EffectType.CollectSurface, 2, CardData.CardCategory.Instrument, "CardArt/multispectral imager"));
-        _deck.Add(CreateRuntimeCard("Trajectory Correction", "Adjust orbital phase", 2, 1, 0, CardData.EffectType.AdjustOrbit, 1, CardData.CardCategory.Maneuver, "CardArt/Trajectory Correction"));
-        _deck.Add(CreateRuntimeCard("Compositional Analysis", "3 Elemental + 2 Surface → Composition", 0, 1, 2, CardData.EffectType.CompositionConclusion, 0, CardData.CardCategory.Analysis, "CardArt/Compositional Analysis"));
+        foreach (var cardName in DefaultStartingDeckCardNames)
+        {
+            if (!TryGetCardTemplateByName(cardName, out var t))
+            {
+                Debug.LogError($"[DeckManager] Starting deck references unknown card '{cardName}'.");
+                continue;
+            }
+            _deck.Add(CreateRuntimeCard(t.name, t.desc, t.p, t.b, t.t, t.effect, t.value, t.cat, t.art, t.value2));
+        }
+    }
+
+    private static bool TryGetCardTemplateByName(string cardName,
+        out (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art) tmpl)
+    {
+        for (int i = 0; i < AllCardTemplates.Length; i++)
+        {
+            if (AllCardTemplates[i].name == cardName)
+            {
+                tmpl = AllCardTemplates[i];
+                return true;
+            }
+        }
+        tmpl = default;
+        return false;
     }
 
     private static CardData CreateRuntimeCard(string name, string desc, int p, int b, int t,
@@ -585,6 +801,24 @@ public class DeckManager : MonoBehaviour
         var tmpl = RandomCardTemplates[idx];
         return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
     }
+
+    /// <summary>Creates one crisis crisis-resolution / resource card (for Systems Stress Test reward bias).</summary>
+    public static CardData CreateRandomCrisisResolutionOrResourceCard()
+    {
+        int idx = UnityEngine.Random.Range(0, StressTestRewardTemplates.Length);
+        var tmpl = StressTestRewardTemplates[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
+    /// <summary>Creates one strict crisis card (to be drawn directly into the player's hand).</summary>
+    public static CardData CreateRandomCrisisCard()
+    {
+        var crisisCards = System.Array.FindAll(AllCardTemplates, c => c.cat == CardData.CardCategory.Crisis);
+        int idx = UnityEngine.Random.Range(0, crisisCards.Length);
+        var tmpl = crisisCards[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
 
     // -----------------------------------------------------------------------
     // UI Feedback
@@ -645,7 +879,7 @@ public class DeckManager : MonoBehaviour
 
         var feedbackText = child.AddComponent<Text>();
         feedbackText.text = "";
-        feedbackText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        feedbackText.font = UiFontHelper.KenneyFutureOrFallback();
         feedbackText.fontSize = 26;
         feedbackText.alignment = TextAnchor.MiddleCenter;
         feedbackText.color = new Color(0.9f, 0.85f, 0.2f, 1f); // Gold for positive feedback

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Loads the main menu scene from a UI button. Attach to the same GameObject as <see cref="Button"/> or assign explicitly.
+/// Loads the options scene from a UI button. Attach to the same GameObject as <see cref="Button"/> or assign explicitly.
 /// </summary>
 [DisallowMultipleComponent]
 public class MainMenuSceneLoader : MonoBehaviour
@@ -26,6 +26,6 @@ public class MainMenuSceneLoader : MonoBehaviour
 
     public void OnMainMenuClicked()
     {
-        OptionsNavigation.LoadMainMenu();
+        OptionsNavigation.OpenOptions();
     }
 }

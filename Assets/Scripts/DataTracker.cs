@@ -49,6 +49,12 @@ public class DataTracker : MonoBehaviour
     /// <summary>Fired when any data or conclusion value changes.</summary>
     public event Action OnDataChanged;
 
+    private void TriggerDataChanged()
+    {
+        OnDataChanged?.Invoke();
+        EncounterManager.Instance?.CheckBossConditions();
+    }
+
     public enum DataType { Surface, Elemental, Magnetic, Gravity, Thermal }
 
     private void Awake()
@@ -83,7 +89,7 @@ public class DataTracker : MonoBehaviour
             case DataType.Thermal:    _thermal += amount; break;
         }
         Debug.Log($"[DataTracker] +{amount} {type} data (total: {GetDataCount(type)})");
-        OnDataChanged?.Invoke();
+        TriggerDataChanged();
     }
 
     /// <summary>Add 1 of each data type (Multi-Instrument Suite).</summary>
@@ -95,7 +101,7 @@ public class DataTracker : MonoBehaviour
         _gravity += amount;
         _thermal += amount;
         Debug.Log($"[DataTracker] +{amount} of each data type");
-        OnDataChanged?.Invoke();
+        TriggerDataChanged();
     }
 
     public int GetDataCount(DataType type)
@@ -122,7 +128,7 @@ public class DataTracker : MonoBehaviour
         {
             _elemental -= 3; _surface -= 2; _composition++;
             Debug.Log("[DataTracker] Composition Conclusion synthesized!");
-            OnDataChanged?.Invoke();
+            TriggerDataChanged();
             return true;
         }
         Debug.Log("[DataTracker] Not enough data for Composition (need 3 Elemental + 2 Surface)");
@@ -136,7 +142,7 @@ public class DataTracker : MonoBehaviour
         {
             _magnetic -= 4; _dynamo++;
             Debug.Log("[DataTracker] Dynamo Conclusion synthesized!");
-            OnDataChanged?.Invoke();
+            TriggerDataChanged();
             return true;
         }
         Debug.Log("[DataTracker] Not enough data for Dynamo (need 4 Magnetic)");
@@ -150,7 +156,7 @@ public class DataTracker : MonoBehaviour
         {
             _gravity -= 3; _surface -= 2; _interior++;
             Debug.Log("[DataTracker] Interior Conclusion synthesized!");
-            OnDataChanged?.Invoke();
+            TriggerDataChanged();
             return true;
         }
         Debug.Log("[DataTracker] Not enough data for Interior (need 3 Gravity + 2 Surface)");
@@ -165,7 +171,7 @@ public class DataTracker : MonoBehaviour
             _surface -= 2; _elemental -= 2; _magnetic -= 2; _gravity -= 2; _thermal -= 2;
             _formation++;
             Debug.Log("[DataTracker] Formation Conclusion synthesized!");
-            OnDataChanged?.Invoke();
+            TriggerDataChanged();
             return true;
         }
         Debug.Log("[DataTracker] Not enough data for Formation (need 2 of each type)");
@@ -201,7 +207,7 @@ public class DataTracker : MonoBehaviour
         else _formation++;
 
         Debug.Log("[DataTracker] Wild Conclusion synthesized!");
-        OnDataChanged?.Invoke();
+        TriggerDataChanged();
         return true;
     }
 
@@ -212,7 +218,7 @@ public class DataTracker : MonoBehaviour
         {
             _conclusionBonuses++;
             Debug.Log("[DataTracker] Conclusion upgraded (Peer Review)!");
-            OnDataChanged?.Invoke();
+            TriggerDataChanged();
             return true;
         }
         Debug.Log("[DataTracker] No conclusions to upgrade");
@@ -224,6 +230,6 @@ public class DataTracker : MonoBehaviour
     {
         _surface = _elemental = _magnetic = _gravity = _thermal = 0;
         _composition = _dynamo = _interior = _formation = _conclusionBonuses = 0;
-        OnDataChanged?.Invoke();
+        TriggerDataChanged();
     }
 }
