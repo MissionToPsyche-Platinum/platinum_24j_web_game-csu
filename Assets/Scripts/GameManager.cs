@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     private static GameManager _instance;
-
+    public int currentFloor = 1;
     public static GameManager Instance => _instance;
 
     [Header("Transition to next floor")]
@@ -57,6 +57,8 @@ public class GameManager : MonoBehaviour
     /// <summary>Subtracts transition time via ResourceManager, then loads the next scene.</summary>
     public void TransitionToNextFloor()
     {
+        currentFloor++;
+    
         if (ResourceManager.Instance != null)
             ResourceManager.Instance.AddTime(-timeCostPerFloor);
 
