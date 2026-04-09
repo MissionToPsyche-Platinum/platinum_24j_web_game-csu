@@ -80,12 +80,14 @@ public class EncounterManager : MonoBehaviour
     [Header("Systems Stress Test Tracking")]
     [SerializeField] private int _crisesResolvedThisEncounter = 0;
     [SerializeField] private int _activeCrisesThisEncounter = 0;
+    [SerializeField] private bool _failedByCrisisStack = false;
     private const int StressTestResolveTarget = 4;
-    private const int StressTestActiveLimit = 3;
+    private const int StressTestActiveLimit = 4;
 
     public int CrisesResolvedThisEncounter => _crisesResolvedThisEncounter;
     public int ActiveCrisesThisEncounter => _activeCrisesThisEncounter;
     public bool IsSystemsStressTest => _currentLogicType == EncounterLogicType.SystemsStressTest;
+    public bool FailedByCrisisStack => _failedByCrisisStack;
     /// <summary>Set after a stress test win so CardRewardUI can bias the reward pool.</summary>
     public bool LastEncounterWasStressTest { get; private set; }
 
@@ -228,8 +230,9 @@ public class EncounterManager : MonoBehaviour
         if (crisis == null) return;
 
         Debug.Log($"[EncounterManager] Systems Stress Test — crisis added to hand: {crisis.cardName}");
-        ApplyCrisisCardEffects(crisis);
         deckManager?.AddCrisisCardToHand(crisis);
+        ApplyCrisisCardEffects(crisis);
+        SyncActiveCrisesFromHand();
     }
 
     private void ApplyCrisisCardEffects(CardData crisis)
@@ -327,8 +330,8 @@ public class EncounterManager : MonoBehaviour
         if (!rm.CanAfford(3, 0, 0)) return false;
         rm.TrySpend(3, 0, 0);
         _solarStormExtraTimePerTurn = 0;
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisSolarStorm);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisSolarStorm);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisSolarStorm);
         return true;
     }
 
@@ -342,8 +345,8 @@ public class EncounterManager : MonoBehaviour
         _thrusterAnomalyActive = false;
         if (_extraManeuverPowerCost > 0)
             _extraManeuverPowerCost = Mathf.Max(0, _extraManeuverPowerCost - 1);
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisThrusterTax);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisThrusterTax);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisThrusterTax);
         return true;
     }
 
@@ -356,8 +359,8 @@ public class EncounterManager : MonoBehaviour
         rm.TrySpend(0, 2, 0);
         _groundStationConflictActive = false;
         _skipDrawOnce = false;
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDrawOnce);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockDrawOnce);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDrawOnce);
         return true;
     }
 
@@ -370,8 +373,8 @@ public class EncounterManager : MonoBehaviour
         rm.TrySpend(0, 0, 2);
         _dataStorageFullActive = false;
         _blockInstrumentData = false;
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDataCollection);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockDataCollection);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockDataCollection);
         return true;
     }
 
@@ -384,8 +387,8 @@ public class EncounterManager : MonoBehaviour
         rm.TrySpend(3, 1, 0);
         _debrisFieldCrisisActive = false;
         _blockNextManeuverPlay = false;
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockNextManeuver);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBlockNextManeuver);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBlockNextManeuver);
         return true;
     }
 
@@ -406,8 +409,8 @@ public class EncounterManager : MonoBehaviour
             if (need > 0)
                 deckManager.Draw(need);
         }
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisComputerReboot);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisComputerReboot);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisComputerReboot);
         return true;
     }
 
@@ -420,8 +423,8 @@ public class EncounterManager : MonoBehaviour
         rm.TrySpend(0, 0, 3);
         rm.AddBudget(_budgetCutRestoreBudgetAmount);
         _budgetCutRestoreAvailable = false;
-        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBudgetCut);
         deckManager?.RemoveFirstCrisisCardWithEffectType(CardData.EffectType.CrisisBudgetCut);
+        OnCrisisResolved?.Invoke(CardData.EffectType.CrisisBudgetCut);
         return true;
     }
 
@@ -470,7 +473,7 @@ public class EncounterManager : MonoBehaviour
     {
         if (_currentLogicType == EncounterLogicType.SystemsStressTest)
         {
-            _activeCrisesThisEncounter++;
+            SyncActiveCrisesFromHand();
             UpdateStressTestState();
         }
     }
@@ -480,9 +483,24 @@ public class EncounterManager : MonoBehaviour
         if (_currentLogicType == EncounterLogicType.SystemsStressTest)
         {
             _crisesResolvedThisEncounter++;
-            _activeCrisesThisEncounter = Mathf.Max(0, _activeCrisesThisEncounter - 1);
+            SyncActiveCrisesFromHand();
             UpdateStressTestState();
         }
+    }
+
+    private void SyncActiveCrisesFromHand()
+    {
+        if (deckManager == null)
+            return;
+        int count = 0;
+        var hand = deckManager.Hand;
+        for (int i = 0; i < hand.Count; i++)
+        {
+            var card = hand[i];
+            if (card != null && card.category == CardData.CardCategory.Crisis)
+                count++;
+        }
+        _activeCrisesThisEncounter = count;
     }
 
     private void UpdateStressTestState()
@@ -495,6 +513,7 @@ public class EncounterManager : MonoBehaviour
 
         if (_activeCrisesThisEncounter >= StressTestActiveLimit)
         {
+            _failedByCrisisStack = true;
             CompleteEncounter(false); // Defeat
         }
         else if (_crisesResolvedThisEncounter >= StressTestResolveTarget)
@@ -551,6 +570,7 @@ public class EncounterManager : MonoBehaviour
         _maneuversPlayedThisEncounter = 0;
         _crisesResolvedThisEncounter = 0;
         _activeCrisesThisEncounter = 0;
+        _failedByCrisisStack = false;
         LastEncounterWasStressTest = false;
 
         // Reset maneuver flags

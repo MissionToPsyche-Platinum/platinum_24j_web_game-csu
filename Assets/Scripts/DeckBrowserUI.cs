@@ -9,6 +9,12 @@ using TMPro;
 /// </summary>
 public class DeckBrowserUI : MonoBehaviour
 {
+    private enum BrowserMode
+    {
+        Deck,
+        Discard
+    }
+
     public static bool IsDeckBrowserOpen { get; private set; }
 
     [SerializeField] private GameObject cardPrefab;
@@ -19,6 +25,7 @@ public class DeckBrowserUI : MonoBehaviour
     private TMP_Text _titleText;
     private DeckManager _deck;
     private bool _built;
+    private BrowserMode _mode = BrowserMode.Deck;
 
     [Header("Card Display")]
     [Tooltip("Scale applied to each card instance in the grid.")]
@@ -66,13 +73,38 @@ public class DeckBrowserUI : MonoBehaviour
 
     public void Toggle()
     {
-        if (IsDeckBrowserOpen)
-            Hide();
-        else
-            Show();
+        ToggleDeck();
     }
 
-    public void Show()
+    public void ToggleDeck()
+    {
+        if (IsDeckBrowserOpen && _mode == BrowserMode.Deck)
+            Hide();
+        else
+            ShowDeck();
+    }
+
+    public void ToggleDiscard()
+    {
+        if (IsDeckBrowserOpen && _mode == BrowserMode.Discard)
+            Hide();
+        else
+            ShowDiscard();
+    }
+
+    public void ShowDeck()
+    {
+        _mode = BrowserMode.Deck;
+        ShowCurrentMode();
+    }
+
+    public void ShowDiscard()
+    {
+        _mode = BrowserMode.Discard;
+        ShowCurrentMode();
+    }
+
+    private void ShowCurrentMode()
     {
         EnsureBuilt();
         _deck = FindPrimaryDeck();
@@ -112,10 +144,21 @@ public class DeckBrowserUI : MonoBehaviour
     private void Repopulate()
     {
         ClearContent();
-        IReadOnlyList<CardData> cards = _deck.GetDrawPileOrderedNextDrawFirst();
-        _titleText.text = cards.Count == 0
-            ? "Deck (empty \u2014 will shuffle from discard when you draw)"
-            : $"Cards to draw ({cards.Count}) \u2014 next draw is top-left";
+        IReadOnlyList<CardData> cards;
+        if (_mode == BrowserMode.Discard)
+        {
+            cards = _deck.GetDiscardPileOrderedNewestFirst();
+            _titleText.text = cards.Count == 0
+                ? "Discard pile (empty)"
+                : $"Discard pile ({cards.Count}) - newest is top-left";
+        }
+        else
+        {
+            cards = _deck.GetDrawPileOrderedNextDrawFirst();
+            _titleText.text = cards.Count == 0
+                ? "Deck (empty - will shuffle from discard when you draw)"
+                : $"Cards to draw ({cards.Count}) - next draw is top-left";
+        }
 
         if (cardPrefab == null)
             cardPrefab = Resources.Load<GameObject>("CardView");

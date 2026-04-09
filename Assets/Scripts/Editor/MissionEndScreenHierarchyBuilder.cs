@@ -60,6 +60,21 @@ public static class MissionEndScreenHierarchyBuilder
         bgImg.color = Color.black;
         bgImg.raycastTarget = true;
 
+        var successBgGo = CreateUiChild(root.transform, "SuccessBackground");
+        StretchFull(successBgGo.GetComponent<RectTransform>());
+        var successBgImg = successBgGo.AddComponent<Image>();
+        successBgImg.sprite = LoadSprite("Assets/Resources/MissionEnd/psychewinnobg.png");
+        successBgImg.preserveAspect = false;
+        successBgImg.raycastTarget = true;
+
+        var failureBgGo = CreateUiChild(root.transform, "FailureBackground");
+        StretchFull(failureBgGo.GetComponent<RectTransform>());
+        var failureBgImg = failureBgGo.AddComponent<Image>();
+        failureBgImg.sprite = LoadSprite("Assets/Resources/MissionEnd/psychelosenobg.png");
+        failureBgImg.preserveAspect = false;
+        failureBgImg.raycastTarget = true;
+        failureBgGo.SetActive(false);
+
         var winGo = CreateUiChild(root.transform, "SuccessArt");
         CenterMiddle(winGo.GetComponent<RectTransform>(), new Vector2(900f, 500f));
         var winImg = winGo.AddComponent<Image>();
@@ -72,6 +87,22 @@ public static class MissionEndScreenHierarchyBuilder
         loseImg.sprite = LoadSprite("Assets/Resources/MissionEnd/psychelosenobg.png");
         loseImg.preserveAspect = true;
         loseGo.SetActive(false);
+        var kenney = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Kenney Future SDF.asset");
+
+        var titleGo = CreateUiChild(root.transform, "OutcomeTitle");
+        var titleRt = titleGo.GetComponent<RectTransform>();
+        titleRt.anchorMin = new Vector2(0.5f, 1f);
+        titleRt.anchorMax = new Vector2(0.5f, 1f);
+        titleRt.pivot = new Vector2(0.5f, 1f);
+        titleRt.anchoredPosition = new Vector2(0f, -48f);
+        titleRt.sizeDelta = new Vector2(1200f, 96f);
+        var title = titleGo.AddComponent<TextMeshProUGUI>();
+        title.text = "Mission Success!";
+        title.alignment = TextAlignmentOptions.Center;
+        title.fontSize = 72;
+        title.color = Color.white;
+        if (kenney != null)
+            title.font = kenney;
 
         var btnGo = CreateUiChild(root.transform, "ReturnButton");
         var btnRt = btnGo.GetComponent<RectTransform>();
@@ -98,15 +129,17 @@ public static class MissionEndScreenHierarchyBuilder
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.fontSize = 36;
         tmp.color = Color.white;
-        var kenney = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Kenney Future SDF.asset");
         if (kenney != null)
             tmp.font = kenney;
 
         var ctrl = root.AddComponent<MissionEndScreenUI>();
         var so = new SerializedObject(ctrl);
         so.FindProperty("backgroundImage").objectReferenceValue = bgImg;
+        so.FindProperty("successBackgroundImage").objectReferenceValue = successBgImg;
+        so.FindProperty("failureBackgroundImage").objectReferenceValue = failureBgImg;
         so.FindProperty("successArtImage").objectReferenceValue = winImg;
         so.FindProperty("failureArtImage").objectReferenceValue = loseImg;
+        so.FindProperty("outcomeTitleLabel").objectReferenceValue = title;
         so.FindProperty("returnButton").objectReferenceValue = btn;
         so.FindProperty("returnLabel").objectReferenceValue = tmp;
         so.ApplyModifiedPropertiesWithoutUndo();

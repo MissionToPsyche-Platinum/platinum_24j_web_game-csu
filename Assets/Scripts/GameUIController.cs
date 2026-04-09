@@ -81,6 +81,7 @@ public class GameUIController : MonoBehaviour
         TryResolveHudPanel();
         TryResolveEncounterPanel();
         TryWireDeckPileButton();
+        TryWireDiscardPileButton();
     }
 
     private void TryResolveHudPanel()
@@ -253,6 +254,14 @@ public class GameUIController : MonoBehaviour
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
 
+        if (!success)
+        {
+            // Systems Stress Test hard-fail: 3 active crises stacked at once.
+            if (_encounterManager != null && _encounterManager.IsSystemsStressTest && _encounterManager.FailedByCrisisStack)
+                MissionEndScreenUI.ShowFailure();
+            return;
+        }
+
         if (success)
         {
             if (_cardRewardUI != null)
@@ -323,13 +332,21 @@ public class GameUIController : MonoBehaviour
         }
 
         SetFloor(_currentPhase);
-        StartEncounterForCurrentPhase();
-        
+
+        // Discard and redraw BEFORE starting the next encounter so that:
+        // (a) any crisis card added by StartEncounterForCurrentPhase (e.g. Systems Stress Test)
+        //     lands in hand after the draw, not before it where DiscardHand would remove it.
+        // (b) _skipDrawOnce set by TriggerRandomCrisis (Ground Station Conflict) inside
+        //     StartEncounterForCurrentPhase cannot skip this draw — it should only skip the
+        //     draw at the start of the first turn of the new encounter.
         if (_deckManager != null)
         {
             _deckManager.DiscardHand();
+            _deckManager.RecycleDiscardToDeck();
             _deckManager.Draw(5);
         }
+
+        StartEncounterForCurrentPhase();
     }
 
     private int GetRequiredEncountersForPhase(int phase)
@@ -484,13 +501,41 @@ public class GameUIController : MonoBehaviour
         btn.onClick.AddListener(HandleDeckPileClicked);
     }
 
+    private void TryWireDiscardPileButton()
+    {
+        Transform discardPile = FindDeepChild(transform, "DiscardPile");
+        if (discardPile == null)
+            return;
+
+        var btn = discardPile.GetComponent<Button>();
+        if (btn == null)
+        {
+            btn = discardPile.gameObject.AddComponent<Button>();
+            var img = discardPile.GetComponent<Image>();
+            if (img != null)
+                btn.targetGraphic = img;
+        }
+
+        btn.onClick.RemoveListener(HandleDiscardPileClicked);
+        btn.onClick.AddListener(HandleDiscardPileClicked);
+    }
+
     private void HandleDeckPileClicked()
     {
         if (deckBrowser == null)
             deckBrowser = GetComponent<DeckBrowserUI>();
         if (deckBrowser == null)
             deckBrowser = gameObject.AddComponent<DeckBrowserUI>();
-        deckBrowser.Toggle();
+        deckBrowser.ToggleDeck();
+    }
+
+    private void HandleDiscardPileClicked()
+    {
+        if (deckBrowser == null)
+            deckBrowser = GetComponent<DeckBrowserUI>();
+        if (deckBrowser == null)
+            deckBrowser = gameObject.AddComponent<DeckBrowserUI>();
+        deckBrowser.ToggleDiscard();
     }
 
     private static Transform FindDeepChild(Transform root, string childName)
