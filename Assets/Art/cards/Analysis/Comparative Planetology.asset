@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ea7822debdbe45a3b424369cd65e56d, type: 3}
+  m_Name: Comparative Planetology
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: Comparative Planetology
+  type: 3
+  category: 3
+  costPower: 0
+  costBudget: 2
+  costTime: 2
+  description: Convert any 5 data to 1 Conclusion of choice
+  dataValue: 0
+  cardArt: {fileID: 21300000, guid: 47fedb18f4fa4804d8fe60d8f62d69d5, type: 3}
+  effectType: 21
+  effectValue: 0
+  effectValue2: 0

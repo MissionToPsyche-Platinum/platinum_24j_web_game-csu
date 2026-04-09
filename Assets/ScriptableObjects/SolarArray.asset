@@ -19,5 +19,5 @@ MonoBehaviour:
   timeCost: 1
   description: Deploy high-efficiency solar panels. Gain +3 Power every turn
   dataValue: 0
-  cardArt: {fileID: 0}
+  cardArt: {fileID: -1495660184, guid: bac68f65009b643e890c4d2b1630a22f, type: 3}
   rarity: 0

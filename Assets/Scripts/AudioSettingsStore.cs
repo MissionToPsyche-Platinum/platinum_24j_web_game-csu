@@ -12,6 +12,7 @@ public static class AudioSettingsStore
         {
             PlayerPrefs.SetFloat(MusicKey, Mathf.Clamp01(value));
             PlayerPrefs.Save();
+            AudioVolumeApplicator.ApplyAll();
         }
     }
 
@@ -22,6 +23,7 @@ public static class AudioSettingsStore
         {
             PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value));
             PlayerPrefs.Save();
+            AudioVolumeApplicator.ApplyAll();
         }
     }
 }
