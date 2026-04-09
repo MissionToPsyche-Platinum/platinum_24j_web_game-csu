@@ -104,6 +104,10 @@ public class CardRewardUI : MonoBehaviour
     private void OnEncounterComplete(bool success)
     {
         if (!success) return;
+        
+        var uiCtrl = FindAnyObjectByType<GameUIController>();
+        if (uiCtrl != null && uiCtrl.singleEncounterMode) return;
+        
         BeginRewards();
     }
 
@@ -146,6 +150,8 @@ public class CardRewardUI : MonoBehaviour
                 rt.localScale = Vector3.one * 1.15f;
                 rt.localRotation = Quaternion.identity;
             }
+
+            StripInteractionComponents(go);
 
             int idx = i;
             var btn = go.GetComponent<Button>();
@@ -234,5 +240,13 @@ public class CardRewardUI : MonoBehaviour
                 return d;
         }
         return all.Length > 0 ? all[0] : null;
+    }
+
+    private static void StripInteractionComponents(GameObject go)
+    {
+        foreach (var ct in go.GetComponentsInChildren<CardTrigger>(true))
+            Destroy(ct);
+        foreach (var dh in go.GetComponentsInChildren<CardDragHandler>(true))
+            Destroy(dh);
     }
 }

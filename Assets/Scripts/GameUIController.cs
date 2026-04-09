@@ -38,6 +38,13 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private Transform crisisContainer;
     private System.Collections.Generic.List<CrisisWidgetUI> _activeCrises = new System.Collections.Generic.List<CrisisWidgetUI>();
 
+    [Header("End Game UI")]
+    [SerializeField] private GameOverUI gameOverUI;
+
+    [Header("Testing & Flow")]
+    [Tooltip("If true, the game ends in Victory immediately after hitting progress on the first encounter. Useful for testing without playing all 4 floors.")]
+    public bool singleEncounterMode = true;
+
     [Header("Events")]
     /// <summary>Subscribe to this to receive End Turn notifications.</summary>
     public UnityEvent onEndTurn = new UnityEvent();
@@ -76,6 +83,19 @@ public class GameUIController : MonoBehaviour
         TryResolveHudPanel();
         TryResolveEncounterPanel();
         TryWireDeckPileButton();
+    }
+
+    private void EnsureGameOverUI()
+    {
+        if (gameOverUI != null) return;
+        
+        gameOverUI = GetComponentInChildren<GameOverUI>(true);
+        if (gameOverUI == null)
+        {
+            var go = new GameObject("GameOverUI");
+            go.transform.SetParent(transform, false);
+            gameOverUI = go.AddComponent<GameOverUI>();
+        }
     }
 
     private void TryResolveHudPanel()
@@ -206,7 +226,17 @@ public class GameUIController : MonoBehaviour
     {
         string result = success ? "VICTORY!" : "DEFEAT!";
         Debug.Log($"[GameUIController] Encounter result: {result}");
-        // Overlays handled by CardRewardUI or other systems
+        if (!success)
+        {
+            EnsureGameOverUI();
+            gameOverUI.ShowDefeat();
+        }
+        else if (singleEncounterMode)
+        {
+            EnsureGameOverUI();
+            gameOverUI.ShowVictory();
+        }
+        // Otherwise, victory triggers CardRewardUI, which then calls HandleRewardsComplete
     }
 
     private void OnCrisisActivated(CardData.EffectType crisisType)
@@ -248,7 +278,8 @@ public class GameUIController : MonoBehaviour
         if (_currentPhase > 4)
         {
             Debug.Log("GAME WON! Mission Complete.");
-            // Ideally trigger a real win screen here
+            EnsureGameOverUI();
+            gameOverUI.ShowVictory();
             return;
         }
 

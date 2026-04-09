@@ -742,12 +742,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuUI
   gameSceneName: SampleScene
-  cardCollectionSceneName: 
+  cardCollectionSceneName: CardGallery
+  optionsSceneName: Options
   optionsPanel: {fileID: 0}
   mainMenuPanel: {fileID: 6225835424874429096}
   gameplayLayer: {fileID: 0}
   handZoneLayer: {fileID: 0}
   backgroundLayer: {fileID: 0}
+  gameCanvas: {fileID: 0}
 --- !u!114 &3150660386951905776
 MonoBehaviour:
   m_ObjectHideFlags: 0
