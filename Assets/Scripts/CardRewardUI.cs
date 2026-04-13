@@ -35,7 +35,7 @@ public class CardRewardUI : MonoBehaviour
 
     [Header("Debug")]
     [Tooltip("Enable to open the reward screen with ]. Disable when done testing.")]
-    [SerializeField] private bool enableDebugHotkey = true;
+    [SerializeField] private bool enableDebugHotkey = false;
 
     private DeckManager _deckManager;
     private CardData[] _options;

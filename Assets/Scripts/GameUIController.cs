@@ -54,7 +54,7 @@ public class GameUIController : MonoBehaviour
 
     [Header("Debug / test (mission end screens)")]
     [Tooltip("When enabled: − or numpad − opens Mission Failure; + (numpad +) or Shift+= opens Mission Success.")]
-    [SerializeField] private bool enableMissionEndTestHotkeys = true;
+    [SerializeField] private bool enableMissionEndTestHotkeys = false;
 
     private void Awake()
     {

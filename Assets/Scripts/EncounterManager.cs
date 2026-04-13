@@ -785,11 +785,15 @@ public class EncounterManager : MonoBehaviour
     /// <summary>Get the current progress as a 0-1 fraction.</summary>
     public float ProgressFraction => (float)_currentProgress / Mathf.Max(1, _targetProgress);
 
+    [Header("Debug")]
+    [SerializeField] private bool enableDebugHotkey = false;
+
     // -----------------------------------------------------------------------
     // Debug — press semicolon (;) to auto-complete the current encounter
     // -----------------------------------------------------------------------
     private void Update()
     {
+        if (!enableDebugHotkey) return;
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null && kb[UnityEngine.InputSystem.Key.Semicolon].wasPressedThisFrame && _encounterActive)
         {
