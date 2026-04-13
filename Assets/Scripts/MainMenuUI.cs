@@ -188,13 +188,20 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnViewCards()
     {
+        if (CardGalleryOverlay.TryShow())
+        {
+            if (mainMenuPanel != null)
+                mainMenuPanel.SetActive(false);
+            return;
+        }
+
         if (!string.IsNullOrEmpty(cardCollectionSceneName))
         {
             SceneManager.LoadScene(cardCollectionSceneName);
         }
         else
         {
-            Debug.Log("MainMenuUI: View Cards clicked. Card collection scene not set yet.");
+            Debug.Log("MainMenuUI: View Cards clicked. No CardGalleryOverlay in scene and no cardCollectionSceneName set.");
         }
     }
 
