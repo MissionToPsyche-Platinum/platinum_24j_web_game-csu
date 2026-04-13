@@ -167,6 +167,9 @@ public class MissionEndScreenUI : MonoBehaviour
         if (outcomeTitleLabel != null)
             outcomeTitleLabel.text = success ? successTitleText : failureTitleText;
 
+        if (returnButton != null)
+            returnButton.gameObject.SetActive(true);
+
         _isShowing = true;
         gameObject.SetActive(true);
         Time.timeScale = 0f;
