@@ -16,6 +16,29 @@ using UnityEngine.UI;
 /// </summary>
 public class MainMenuUI : MonoBehaviour
 {
+    // Survives scene reload — used to detect a replay and auto-start after the fresh scene loads.
+    private static bool _gameWasPlayed = false;
+    private static bool _autoStartAfterReload = false;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        _gameWasPlayed = false;
+        _autoStartAfterReload = false;
+    }
+
+    private void Start()
+    {
+        if (_autoStartAfterReload)
+        {
+            // Scene just reloaded for a fresh restart — skip the main menu.
+            _autoStartAfterReload = false;
+            _gameWasPlayed = false; // treat as first play so OnStartGame runs normally
+            OnStartGame();
+            return;
+        }
+    }
+
     [Header("Scene Names")]
     [Tooltip("Scene to load when starting the game (e.g., 'SampleScene').")]
     public string gameSceneName = "SampleScene";
@@ -57,6 +80,16 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnStartGame()
     {
+        // If a game was already played this session, reload the scene so all state is fresh.
+        if (_gameWasPlayed)
+        {
+            _autoStartAfterReload = true;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            return;
+        }
+
+        _gameWasPlayed = true;
+
         if (!string.IsNullOrEmpty(gameSceneName))
         {
             SceneManager.LoadScene(gameSceneName);

@@ -1,80 +1,46 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Video;
 
 /// <summary>
-/// Plays a video as a full-screen UI background (e.g. Psyche asteroid rotation).
-/// Place this on a child of MainMenu_Panel so it only shows on the main menu;
-/// when you switch to Options / View Cards / Start Game, the panel is hidden and the video stops.
-/// Assign either a VideoClip (in-project) or set a direct .mp4 URL for WebGL.
-/// Note: YouTube links cannot be used directly; use a downloaded/hosted .mp4 file.
+/// Displays a static full-screen image as the main menu background.
+/// Replaces the VideoPlayer approach which is unreliable on WebGL.
+/// Assign backgroundTexture in the Inspector (e.g. mainmenubackground.webp).
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class MenuVideoBackground : MonoBehaviour
 {
-    [Header("Video Source (use one)")]
-    [Tooltip("Video file from your project (e.g. in StreamingAssets or Assets).")]
-    public VideoClip videoClip;
+    [Header("Background Image")]
+    [Tooltip("Texture to display as the menu background (e.g. mainmenubackground.webp).")]
+    public Texture2D backgroundTexture;
 
-    [Tooltip("Direct URL to an .mp4 file (e.g. for WebGL). Not a YouTube page URL.")]
-    public string videoUrl;
-
-    [Header("Playback")]
-    [Tooltip("Loop the video.")]
-    public bool loop = true;
-
-    [Tooltip("Mute video audio.")]
-    public bool mute = true;
-
-    private VideoPlayer _videoPlayer;
-    private RenderTexture _renderTexture;
     private RawImage _rawImage;
-    private int _framesApplied;
 
     private void Start()
     {
-        ForceStretch();
-        transform.SetAsFirstSibling(); // Draw behind title and buttons
         SetupDisplay();
-        if (videoClip == null && string.IsNullOrEmpty(videoUrl))
-            return;
-        SetupVideoPlayer();
+        ForceStretch();
+        transform.SetAsFirstSibling();
     }
 
     private void OnEnable()
     {
         ForceStretch();
-        if (_videoPlayer != null && (_videoPlayer.clip != null || !string.IsNullOrEmpty(_videoPlayer.url)))
-            _videoPlayer.Play();
     }
 
-    private void LateUpdate()
+    private void SetupDisplay()
     {
-        if (_framesApplied < 4)
-        {
-            ForceStretch();
-            _framesApplied++;
-        }
+        _rawImage = GetComponent<RawImage>();
+        if (_rawImage == null)
+            _rawImage = gameObject.AddComponent<RawImage>();
+
+        _rawImage.color = Color.white;
+
+        if (backgroundTexture != null)
+            _rawImage.texture = backgroundTexture;
+        else
+            Debug.LogWarning("[MenuVideoBackground] No backgroundTexture assigned — menu background will be blank.");
     }
 
-    private void OnDisable()
-    {
-        if (_videoPlayer != null)
-            _videoPlayer.Pause();
-    }
-
-    private void OnDestroy()
-    {
-        if (_renderTexture != null)
-        {
-            _renderTexture.Release();
-            _renderTexture = null;
-        }
-    }
-
-    /// <summary>
-    /// Force this object to fill its parent (full stretch). Call from Start/OnEnable and a few LateUpdates so it sticks.
-    /// </summary>
     private void ForceStretch()
     {
         RectTransform rt = GetComponent<RectTransform>();
@@ -87,48 +53,5 @@ public class MenuVideoBackground : MonoBehaviour
         rt.offsetMax = Vector2.zero;
         rt.localScale = Vector3.one;
         rt.anchoredPosition = Vector2.zero;
-    }
-
-    private void SetupDisplay()
-    {
-        _rawImage = GetComponent<RawImage>();
-        if (_rawImage == null)
-            _rawImage = gameObject.AddComponent<RawImage>();
-
-        _rawImage.color = Color.white;
-
-        ForceStretch();
-    }
-
-    private void SetupVideoPlayer()
-    {
-        _videoPlayer = GetComponent<VideoPlayer>();
-        if (_videoPlayer == null)
-            _videoPlayer = gameObject.AddComponent<VideoPlayer>();
-
-        int width = 1280;
-        int height = 720;
-        _renderTexture = new RenderTexture(width, height, 0);
-        _rawImage.texture = _renderTexture;
-
-        _videoPlayer.targetTexture = _renderTexture;
-        _videoPlayer.isLooping = loop;
-        _videoPlayer.skipOnDrop = true;
-
-        if (mute)
-            _videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
-
-        if (videoClip != null)
-        {
-            _videoPlayer.source = VideoSource.VideoClip;
-            _videoPlayer.clip = videoClip;
-        }
-        else if (!string.IsNullOrEmpty(videoUrl))
-        {
-            _videoPlayer.source = VideoSource.Url;
-            _videoPlayer.url = videoUrl;
-        }
-
-        _videoPlayer.Play();
     }
 }

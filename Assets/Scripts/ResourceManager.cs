@@ -4,7 +4,7 @@ using UnityEngine;
 public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
-    public System.Action<int, int, int> OnResourcesChanged;
+    public event System.Action<int, int, int> OnResourcesChanged;
 
     /// <summary>Fired once when Time reaches 0 (mission failure condition).</summary>
     public event Action OnMissionFailedByTime;
@@ -45,22 +45,22 @@ public class ResourceManager : MonoBehaviour
         OnMissionFailedByTime?.Invoke();
     }
 // --- ADDED METHODS TO FIX CS1061 ERRORS ---
-    public void AddPower(int amount) 
+    public void AddPower(int amount)
     {
-        power += amount;
+        power = Mathf.Max(0, power + amount);
         UpdateUI();
         EncounterManager.Instance?.CheckBossConditions();
     }
 
-    public void AddBudget(int amount) 
+    public void AddBudget(int amount)
     {
-        budget += amount;
+        budget = Mathf.Max(0, budget + amount);
         UpdateUI();
     }
 
-    public void AddTime(int amount) 
+    public void AddTime(int amount)
     {
-        time += amount;
+        time = Mathf.Max(0, time + amount);
         UpdateUI();
     }
     // ------------------------------------------

@@ -51,10 +51,11 @@ public class GameUIController : MonoBehaviour
     [Header("Game Flow State")]
     private int _currentPhase = 1;
     private int _encountersCompletedInPhase = 0;
+    private bool _awaitingFloor4Start = false;
 
     [Header("Debug / test (mission end screens)")]
     [Tooltip("When enabled: − or numpad − opens Mission Failure; + (numpad +) or Shift+= opens Mission Success.")]
-    [SerializeField] private bool enableMissionEndTestHotkeys = true;
+    [SerializeField] private bool enableMissionEndTestHotkeys = false;
 
     private void Awake()
     {
@@ -313,21 +314,45 @@ public class GameUIController : MonoBehaviour
     private void HandleRewardsComplete()
     {
         if (_encounterManager == null) return;
-        
+
+        // Second call after analysis selection — now actually start Floor 4.
+        if (_awaitingFloor4Start)
+        {
+            _awaitingFloor4Start = false;
+            SetFloor(_currentPhase);
+            if (_deckManager != null)
+            {
+                _deckManager.DiscardHand();
+                _deckManager.RecycleDiscardToDeck();
+                _deckManager.Draw(5);
+            }
+            StartEncounterForCurrentPhase();
+            return;
+        }
+
         _encountersCompletedInPhase++;
-        
+
         int reqEncounters = GetRequiredEncountersForPhase(_currentPhase);
         if (_encountersCompletedInPhase >= reqEncounters)
         {
             _currentPhase++;
             _encountersCompletedInPhase = 0;
         }
-        
+
         // If we beat floor 4 boss, we win.
         if (_currentPhase > 4)
         {
             Debug.Log("GAME WON! Mission Complete.");
             MissionEndScreenUI.ShowSuccess();
+            return;
+        }
+
+        // Before Floor 4 starts, let the player choose 4 Analysis cards.
+        if (_currentPhase == 4 && _cardRewardUI != null)
+        {
+            _awaitingFloor4Start = true;
+            _cardRewardUI.gameObject.SetActive(true);
+            _cardRewardUI.BeginAnalysisSelection(4);
             return;
         }
 
