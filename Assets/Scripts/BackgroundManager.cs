@@ -11,11 +11,19 @@ public Sprite floor3BG;
 public Sprite floor4BG;
     void Start()
     {
-        SetFloor(GameManager.Instance.currentFloor); 
+        if (GameManager.Instance != null)
+            SetFloor(GameManager.Instance.currentFloor);
+        else
+            Debug.LogWarning("[BackgroundManager] GameManager.Instance is null on Start — background not set.");
     }
 
 public void SetFloor(int floor)
 {
+    if (backgroundImage == null)
+    {
+        Debug.LogWarning("[BackgroundManager] backgroundImage is not assigned.");
+        return;
+    }
     switch (floor)
     {
         case 1:
