@@ -210,17 +210,55 @@ public class EncounterManager : MonoBehaviour
         }
     }
 
+    /// <summary>Clears one specific crisis effect when its card is played from hand.</summary>
+    public void ClearCrisisEffect(CardData.EffectType type)
+    {
+        switch (type)
+        {
+            case CardData.EffectType.CrisisSolarStorm:
+                _solarStormExtraTimePerTurn = 0;
+                break;
+            case CardData.EffectType.CrisisThrusterTax:
+                _thrusterAnomalyActive = false;
+                _extraManeuverPowerCost = Mathf.Max(0, _extraManeuverPowerCost - 1);
+                break;
+            case CardData.EffectType.CrisisBlockDrawOnce:
+                _groundStationConflictActive = false;
+                _skipDrawOnce = false;
+                break;
+            case CardData.EffectType.CrisisBlockDataCollection:
+                _dataStorageFullActive = false;
+                _blockInstrumentData = false;
+                break;
+            case CardData.EffectType.CrisisBlockNextManeuver:
+                _debrisFieldCrisisActive = false;
+                _blockNextManeuverPlay = false;
+                break;
+            case CardData.EffectType.CrisisComputerReboot:
+                _computerRebootCrisisActive = false;
+                _computerRebootPendingSkipDraw = false;
+                _computerRebootCompletingSkippedTurn = false;
+                break;
+            case CardData.EffectType.CrisisBudgetCut:
+                _budgetCutRestoreAvailable = false;
+                break;
+        }
+        OnCrisisResolved?.Invoke(type);
+    }
+
     public event Action<CardData.EffectType> OnCrisisActivated;
     public event Action<CardData.EffectType> OnCrisisResolved;
 
-    /// <summary>Random crisis effects only (no hand card) — used outside Systems Stress Test.</summary>
+    /// <summary>Triggers a random crisis: adds the card to hand so the player can see and resolve it by playing it.</summary>
     public void TriggerRandomCrisis()
     {
         var crisis = DeckManager.CreateRandomCrisisCard();
         if (crisis == null) return;
 
         Debug.Log($"[EncounterManager] Random crisis triggered: {crisis.cardName}");
+        deckManager?.AddCrisisCardToHand(crisis);
         ApplyCrisisCardEffects(crisis);
+        SyncActiveCrisesFromHand();
     }
 
     /// <summary>Systems Stress Test: one random crisis card is added to the hand and its effects apply.</summary>
@@ -672,10 +710,13 @@ public class EncounterManager : MonoBehaviour
         }
     }
 
-    /// <summary>Add progress toward the encounter objective (e.g. from instrument data collection).</summary>
+    /// <summary>Add progress toward the encounter objective (e.g. from instrument data collection).
+    /// Boss encounters manage their own completion via <see cref="CheckBossConditions"/> — this is a no-op for them.</summary>
     public void AddProgress(int amount)
     {
         if (!_encounterActive) return;
+        // Boss and special encounters track completion separately; AddProgress only applies to standard data-collection encounters.
+        if (_currentLogicType != EncounterLogicType.Standard) return;
         _currentProgress = Mathf.Clamp(_currentProgress + amount, 0, _targetProgress);
         Debug.Log($"[EncounterManager] Progress: {_currentProgress}/{_targetProgress}");
         OnProgressChanged?.Invoke(_currentProgress, _targetProgress);

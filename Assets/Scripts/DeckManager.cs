@@ -88,13 +88,13 @@ public class DeckManager : MonoBehaviour
         ("Peer Review Publication", "Upgrade 1 Conclusion to count as 2",             3, 3, 0, CardData.EffectType.UpgradeConclusion,     0, 0, CardData.CardCategory.Analysis, "CardArt/Peer Review Publication"),
 
         // ── Crisis ──
-        ("Solar Storm Warning",    "Lose 2 Power per turn. Resolve: 3 Power OR safe mode.",     3, 3, 0, CardData.EffectType.CrisisSolarStorm,        2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
+        ("Solar Storm Warning",    "Lose 2 Power per turn. Resolve: 3 Power OR safe mode.",     3, 0, 0, CardData.EffectType.CrisisSolarStorm,        2, 0, CardData.CardCategory.Crisis, "CardArt/Solar Storm Warning"),
         ("Thruster Anomaly",       "All Maneuvers cost +1 Power. Resolve: 2 Budget + 2 Time.",  0, 2, 2, CardData.EffectType.CrisisThrusterTax,       1, 0, CardData.CardCategory.Crisis, "CardArt/Thruster Anomaly"),
         ("Ground Station Conflict","Cannot draw for 1 turn. Resolve: 2 Budget.",                0, 2, 0, CardData.EffectType.CrisisBlockDrawOnce,      1, 0, CardData.CardCategory.Crisis, "CardArt/Ground Station Conflict"),
         ("Data Storage Full",      "Cannot collect data until resolved. Resolve: 2 Time.",      0, 0, 2, CardData.EffectType.CrisisBlockDataCollection,1, 0, CardData.CardCategory.Crisis, "CardArt/Data Storage Full"),
         ("Debris Field Detected",  "Next Maneuver fails unless resolved. Resolve: 3 Power + 1 Budget.", 3, 1, 0, CardData.EffectType.CrisisBlockNextManeuver, 1, 0, CardData.CardCategory.Crisis, "CardArt/Debris Field Detected"),
-        ("Computer Reboot Required","Skip next turn entirely. Resolve: 4 Power (no turn lost).", 0, 0, 0, CardData.EffectType.CrisisComputerReboot,   1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
-        ("Budget Cut Notice",      "Lose 3 Budget immediately. Resolve: Pay 3 Time → +2 Budget.", 0, 3, 3, CardData.EffectType.CrisisBudgetCut,       3, 2, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
+        ("Computer Reboot Required","Skip next turn entirely. Resolve: 4 Power (no turn lost).", 4, 0, 0, CardData.EffectType.CrisisComputerReboot,   1, 0, CardData.CardCategory.Crisis, "CardArt/Computer Reboot Required"),
+        ("Budget Cut Notice",      "Lose 3 Budget immediately. Resolve: Pay 3 Time → +2 Budget.", 0, 0, 3, CardData.EffectType.CrisisBudgetCut,       3, 2, CardData.CardCategory.Crisis, "CardArt/Budget Cut Notice"),
     };
 
     /// <summary>Non-crisis card templates for random deck building and rewards.</summary>
@@ -649,25 +649,27 @@ public class DeckManager : MonoBehaviour
                 break;
 
             // === Analysis effects (AI skips — no shared data/progress) ===
+            // After updating DataTracker, call CheckBossConditions so MissionReviewBoss detects completion
+            // (AddProgress is a no-op on boss encounters, so we go through CheckBossConditions directly).
             case CardData.EffectType.CompositionConclusion:
                 if (!isAiPlay && dt != null && dt.TryComposition())
-                    em?.AddProgress(1);
+                    em?.CheckBossConditions();
                 break;
             case CardData.EffectType.DynamoConclusion:
                 if (!isAiPlay && dt != null && dt.TryDynamo())
-                    em?.AddProgress(1);
+                    em?.CheckBossConditions();
                 break;
             case CardData.EffectType.InteriorConclusion:
                 if (!isAiPlay && dt != null && dt.TryInterior())
-                    em?.AddProgress(1);
+                    em?.CheckBossConditions();
                 break;
             case CardData.EffectType.FormationConclusion:
                 if (!isAiPlay && dt != null && dt.TryFormation())
-                    em?.AddProgress(1);
+                    em?.CheckBossConditions();
                 break;
             case CardData.EffectType.WildConclusion:
                 if (!isAiPlay && dt != null && dt.TryWildConclusion())
-                    em?.AddProgress(1);
+                    em?.CheckBossConditions();
                 break;
             case CardData.EffectType.UpgradeConclusion:
                 if (!isAiPlay) dt?.TryUpgradeConclusion();
@@ -699,28 +701,23 @@ public class DeckManager : MonoBehaviour
                 if (!isAiPlay) DiscardRandomCards(card.effectValue);
                 break;
 
+            // === Crisis cards — playing from hand RESOLVES the crisis (effect was applied when card entered hand) ===
             case CardData.EffectType.CrisisSolarStorm:
-                if (!isAiPlay) em?.AddSolarStormExtraTimeDrain(card.effectValue);
-                break;
             case CardData.EffectType.CrisisThrusterTax:
-                if (!isAiPlay) em?.ActivateThrusterAnomaly(card.effectValue > 0 ? card.effectValue : 1);
-                break;
             case CardData.EffectType.CrisisBlockDrawOnce:
-                if (!isAiPlay) em?.ActivateGroundStationConflict();
-                break;
             case CardData.EffectType.CrisisBlockDataCollection:
-                if (!isAiPlay) em?.ActivateDataStorageFull();
-                break;
             case CardData.EffectType.CrisisBlockNextManeuver:
-                if (!isAiPlay) em?.ActivateDebrisField();
-                break;
             case CardData.EffectType.CrisisComputerReboot:
-                if (!isAiPlay) em?.ActivateComputerRebootCrisis();
+                if (!isAiPlay) em?.ClearCrisisEffect(card.effectType);
                 break;
             case CardData.EffectType.CrisisBudgetCut:
-                if (!isAiPlay) em?.ActivateBudgetCut(
-                    card.effectValue > 0 ? card.effectValue : 3,
-                    card.effectValue2 > 0 ? card.effectValue2 : 2);
+                if (!isAiPlay)
+                {
+                    // Restore budget as part of the resolve (immediate loss already happened when card entered hand)
+                    int restoreAmount = card.effectValue2 > 0 ? card.effectValue2 : 2;
+                    rm?.AddBudget(restoreAmount);
+                    em?.ClearCrisisEffect(card.effectType);
+                }
                 break;
 
             case CardData.EffectType.None:
