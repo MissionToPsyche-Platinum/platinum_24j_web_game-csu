@@ -43,6 +43,8 @@ public class CardRewardUI : MonoBehaviour
     private bool _subscribed;
     private CanvasGroup _canvasGroup;
     private int _currentRound;
+    private bool _analysisOnlyMode;
+    private int _totalRoundsThisSession;
 
     private void Awake()
     {
@@ -94,6 +96,18 @@ public class CardRewardUI : MonoBehaviour
 
     public void BeginRewards()
     {
+        _analysisOnlyMode = false;
+        _totalRoundsThisSession = totalRounds;
+        _currentRound = 0;
+        transform.SetAsLastSibling();
+        ShowCurrentRound();
+    }
+
+    /// <summary>Show N rounds of Analysis-only card picks (called before Floor 4).</summary>
+    public void BeginAnalysisSelection(int rounds)
+    {
+        _analysisOnlyMode = true;
+        _totalRoundsThisSession = rounds;
         _currentRound = 0;
         transform.SetAsLastSibling();
         ShowCurrentRound();
@@ -118,14 +132,18 @@ public class CardRewardUI : MonoBehaviour
 
         for (int i = 0; i < cardsPerRound; i++)
         {
-            if (!biasApplied && EncounterManager.Instance != null && EncounterManager.Instance.LastEncounterWasStressTest)
+            if (_analysisOnlyMode)
+            {
+                _options[i] = DeckManager.CreateRandomAnalysisCard();
+            }
+            else if (!biasApplied && EncounterManager.Instance != null && EncounterManager.Instance.LastEncounterWasStressTest)
             {
                 _options[i] = DeckManager.CreateRandomCrisisResolutionOrResourceCard();
                 biasApplied = true;
             }
             else
             {
-                _options[i] = DeckManager.CreateRandomRuntimeCard();
+                _options[i] = DeckManager.CreateRandomRewardCard();
             }
 
             var go = Instantiate(cardPrefab, cardSlotContainer);
@@ -150,7 +168,11 @@ public class CardRewardUI : MonoBehaviour
         }
 
         if (headerText != null)
-            headerText.text = $"Choose a Card  ({_currentRound + 1} / {totalRounds})";
+        {
+            headerText.text = _analysisOnlyMode
+                ? $"Mission Review Prep — Choose Analysis Cards  ({_currentRound + 1} / {_totalRoundsThisSession})"
+                : $"Choose a Card  ({_currentRound + 1} / {_totalRoundsThisSession})";
+        }
 
         SetPanelVisible(true);
     }
@@ -181,7 +203,7 @@ public class CardRewardUI : MonoBehaviour
     private void AdvanceOrClose()
     {
         _currentRound++;
-        if (_currentRound < totalRounds)
+        if (_currentRound < _totalRoundsThisSession)
         {
             ShowCurrentRound();
         }
@@ -193,6 +215,7 @@ public class CardRewardUI : MonoBehaviour
 
     private void Hide()
     {
+        _analysisOnlyMode = false;
         ClearOptions();
         SetPanelVisible(false);
         OnRewardsComplete?.Invoke();

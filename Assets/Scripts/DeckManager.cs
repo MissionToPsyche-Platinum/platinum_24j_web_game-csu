@@ -101,9 +101,31 @@ public class DeckManager : MonoBehaviour
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] RandomCardTemplates =
         System.Array.FindAll(AllCardTemplates, c => c.cat != CardData.CardCategory.Crisis);
 
-    /// <summary>Resource and maneuver templates for stress test reward bias.</summary>
+    // Dead maneuver effect types — excluded from the reward pool.
+    private static bool IsDeadManeuver(CardData.EffectType e) =>
+        e == CardData.EffectType.AdjustOrbit ||
+        e == CardData.EffectType.OrbitInsertion ||
+        e == CardData.EffectType.BonusNextInstrument ||
+        e == CardData.EffectType.PreventPenalty;
+
+    /// <summary>Cards offered in the regular reward pool: no crisis, no analysis, no dead maneuvers.</summary>
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] RewardCardTemplates =
+        System.Array.FindAll(AllCardTemplates, c =>
+            c.cat != CardData.CardCategory.Crisis &&
+            c.cat != CardData.CardCategory.Analysis &&
+            !IsDeadManeuver(c.effect));
+
+    /// <summary>Analysis cards offered in the pre-Floor-4 selection (excludes Peer Review Publication which doesn't advance boss progress).</summary>
+    private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] AnalysisCardTemplates =
+        System.Array.FindAll(AllCardTemplates, c =>
+            c.cat == CardData.CardCategory.Analysis &&
+            c.effect != CardData.EffectType.UpgradeConclusion);
+
+    /// <summary>Resource and maneuver templates for stress test reward bias (dead maneuvers excluded).</summary>
     private static readonly (string name, string desc, int p, int b, int t, CardData.EffectType effect, int value, int value2, CardData.CardCategory cat, string art)[] StressTestRewardTemplates =
-        System.Array.FindAll(AllCardTemplates, c => c.cat == CardData.CardCategory.Resource || c.cat == CardData.CardCategory.Maneuver);
+        System.Array.FindAll(AllCardTemplates, c =>
+            c.cat == CardData.CardCategory.Resource ||
+            (c.cat == CardData.CardCategory.Maneuver && !IsDeadManeuver(c.effect)));
 
     /// <summary>Design document §8 — default player starting deck (10 cards), built from <see cref="AllCardTemplates"/>.</summary>
     private static readonly string[] DefaultStartingDeckCardNames =
@@ -111,7 +133,7 @@ public class DeckManager : MonoBehaviour
         "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy", "Solar Array Deploy",
         "Budget Request", "Budget Request",
         "Multispectral Imager", "Multispectral Imager",
-        "Trajectory Correction",
+        "Close Approach Flyby",
         "Compositional Analysis"
     };
 
@@ -445,6 +467,8 @@ public class DeckManager : MonoBehaviour
             }
 
             ResourceManager.Instance.TrySpend(effectivePowerCost, card.costBudget, card.costTime);
+            if (card.costBudget > 0)
+                EncounterManager.Instance?.NotifyBudgetSpent(card.costBudget);
         }
 
         // Apply the card's effect
@@ -889,6 +913,22 @@ public class DeckManager : MonoBehaviour
     {
         int idx = UnityEngine.Random.Range(0, RandomCardTemplates.Length);
         var tmpl = RandomCardTemplates[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
+    /// <summary>Creates one card from the filtered reward pool (no crisis, no analysis, no dead maneuvers).</summary>
+    public static CardData CreateRandomRewardCard()
+    {
+        int idx = UnityEngine.Random.Range(0, RewardCardTemplates.Length);
+        var tmpl = RewardCardTemplates[idx];
+        return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
+    }
+
+    /// <summary>Creates one random Analysis card (for pre-Floor-4 selection).</summary>
+    public static CardData CreateRandomAnalysisCard()
+    {
+        int idx = UnityEngine.Random.Range(0, AnalysisCardTemplates.Length);
+        var tmpl = AnalysisCardTemplates[idx];
         return CreateRuntimeCard(tmpl.name, tmpl.desc, tmpl.p, tmpl.b, tmpl.t, tmpl.effect, tmpl.value, tmpl.cat, tmpl.art, tmpl.value2);
     }
 
