@@ -492,6 +492,9 @@ public class DeckManager : MonoBehaviour
         // Refresh layout so remaining cards re-fan
         RefreshHandLayout();
 
+        // Play sound directly (bypasses event-subscription timing issues)
+        SoundManager.PlayCardSound(card);
+
         // Fire events
         OnCardPlayed?.Invoke(card);
         OnHandChanged?.Invoke();

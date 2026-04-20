@@ -144,6 +144,9 @@ public class MissionEndScreenUI : MonoBehaviour
         if (_isShowing)
             return;
 
+        // Tell MainMenuUI the run is done so the next Start press triggers a clean reload.
+        MainMenuUI.NotifyGameCompleted();
+
         HideOtherViews();
 
         // Backward compatibility: if outcome-specific backgrounds are not assigned,

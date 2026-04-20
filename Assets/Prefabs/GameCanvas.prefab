@@ -259,6 +259,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72b893a4180387b45b3059c58136d822, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameUIController
+  enableMissionEndTestHotkeys: 0
   hudPanel: {fileID: 1981162438304494256}
   encounterPanel: {fileID: 2907472789979831446}
   deckCountText: {fileID: 2478439211924278013}

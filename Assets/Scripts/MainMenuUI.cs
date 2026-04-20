@@ -16,25 +16,37 @@ using UnityEngine.UI;
 /// </summary>
 public class MainMenuUI : MonoBehaviour
 {
-    // Survives scene reload — used to detect a replay and auto-start after the fresh scene loads.
-    private static bool _gameWasPlayed = false;
+    // _gameStarted: true once the player has pressed Start Game at least once this session.
+    // _gameCompleted: true when the mission end screen fires (win OR lose). Only then does
+    //   a second Start press trigger a full scene reload for a clean restart.
+    private static bool _gameStarted = false;
+    private static bool _gameCompleted = false;
     private static bool _autoStartAfterReload = false;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
-        _gameWasPlayed = false;
+        _gameStarted = false;
+        _gameCompleted = false;
         _autoStartAfterReload = false;
+    }
+
+    /// <summary>
+    /// Call this when the mission end screen is presented so that the next Start Game press
+    /// triggers a clean scene reload instead of resuming.
+    /// </summary>
+    public static void NotifyGameCompleted()
+    {
+        _gameCompleted = true;
     }
 
     private void Start()
     {
         if (_autoStartAfterReload)
         {
-            // Scene just reloaded for a fresh restart — skip the main menu.
+            // Scene reloaded after a completed run — jump straight into a fresh game.
             _autoStartAfterReload = false;
-            _gameWasPlayed = false; // treat as first play so OnStartGame runs normally
-            OnStartGame();
+            StartGameFresh();
             return;
         }
     }
@@ -80,15 +92,31 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void OnStartGame()
     {
-        // If a game was already played this session, reload the scene so all state is fresh.
-        if (_gameWasPlayed)
+        if (_gameStarted && _gameCompleted)
         {
+            // Game finished — reload the scene so all state is clean for a new run.
+            _gameCompleted = false;
             _autoStartAfterReload = true;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             return;
         }
 
-        _gameWasPlayed = true;
+        if (_gameStarted)
+        {
+            // Game is in progress but the player went to the main menu mid-game — just resume
+            // by re-showing the game layers without resetting any state.
+            ResumeGame();
+            return;
+        }
+
+        StartGameFresh();
+    }
+
+    /// <summary>First-time game start: marks the session as started and shows game layers.</summary>
+    private void StartGameFresh()
+    {
+        _gameStarted = true;
+        _gameCompleted = false;
 
         if (!string.IsNullOrEmpty(gameSceneName))
         {
@@ -96,7 +124,17 @@ public class MainMenuUI : MonoBehaviour
             return;
         }
 
-        // In-scene toggle mode using existing Main_Canvas layers.
+        ShowGameLayers();
+    }
+
+    /// <summary>Resume after returning to main menu mid-game (no state reset).</summary>
+    private void ResumeGame()
+    {
+        ShowGameLayers();
+    }
+
+    private void ShowGameLayers()
+    {
         if (mainMenuPanel != null)
             mainMenuPanel.SetActive(false);
 
