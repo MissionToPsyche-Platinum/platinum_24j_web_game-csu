@@ -852,15 +852,19 @@ public class EncounterManager : MonoBehaviour
     /// <summary>Get the current progress as a 0-1 fraction.</summary>
     public float ProgressFraction => (float)_currentProgress / Mathf.Max(1, _targetProgress);
 
-    [Header("Debug")]
+    // Kept for backwards-compat with the scene's serialized value; ignored at runtime.
+    // The single source of truth is DebugMode.Enabled (Editor, dev build, or ?debug=1).
+    [Header("Debug (deprecated — gated by DebugMode now)")]
     [SerializeField] private bool enableDebugHotkey = false;
 
     // -----------------------------------------------------------------------
-    // Debug — press semicolon (;) to auto-complete the current encounter
+    // Debug — press semicolon (;) to auto-complete the current encounter.
+    // Gated by DebugMode so public hosted builds don't expose it. Symposium
+    // demo URL should append ?debug=1 to unlock.
     // -----------------------------------------------------------------------
     private void Update()
     {
-        if (!enableDebugHotkey) return;
+        if (!DebugMode.Enabled) return;
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null && kb[UnityEngine.InputSystem.Key.Semicolon].wasPressedThisFrame && _encounterActive)
         {

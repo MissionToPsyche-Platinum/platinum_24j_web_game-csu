@@ -2,10 +2,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Always-active singleton that handles global debug hotkeys.
-/// Auto-instantiates via [RuntimeInitializeOnLoadMethod] — no scene setup needed.
+/// Global debug-hotkey singleton. Only auto-instantiates when <see cref="DebugMode.Enabled"/>
+/// is true (Unity Editor, development builds, or WebGL URL with <c>?debug=1</c>).
+/// Public hosted releases skip creation entirely, so judges / guests cannot trigger
+/// the auto-win / auto-lose shortcuts.
 ///
-/// Hotkeys:
+/// Hotkeys (when enabled):
 ///   −  / Numpad −   → Mission Failure
 ///   Shift+= / Numpad + → Mission Success
 /// </summary>
@@ -20,6 +22,7 @@ public class DebugHotkeyHandler : MonoBehaviour
     private static void AutoCreate()
     {
         if (_instance != null) return;
+        if (!DebugMode.Enabled) return; // public release: no hotkey singleton
         var go = new GameObject("[DebugHotkeys]");
         Object.DontDestroyOnLoad(go);
         go.AddComponent<DebugHotkeyHandler>();
@@ -38,6 +41,9 @@ public class DebugHotkeyHandler : MonoBehaviour
 
     private void Update()
     {
+        // Second gate in case the flag is toggled at runtime (e.g. via DebugMode.ForceEnable).
+        if (!DebugMode.Enabled) return;
+
         var kb = Keyboard.current;
         if (kb == null) return;
 
