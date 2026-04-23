@@ -113,7 +113,11 @@ public class ResourceManager : MonoBehaviour
 
     public void TrySpend(int p, int b, int t)
     {
-        power -= p; budget -= b; time -= t;
+        // Defensive clamp: callers are expected to gate this behind CanAfford,
+        // but a bug or race shouldn't drive resources negative.
+        power  = Mathf.Max(0, power  - p);
+        budget = Mathf.Max(0, budget - b);
+        time   = Mathf.Max(0, time   - t);
         if (b > 0)
             EncounterManager.Instance?.NotifyBudgetSpent(b);
         UpdateUI();

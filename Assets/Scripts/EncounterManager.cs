@@ -186,6 +186,26 @@ public class EncounterManager : MonoBehaviour
     /// <summary>Clears ongoing crisis flags (Safe Mode Recovery / Cancel Crisis — “enter safe mode”).</summary>
     public void ClearAllCrisisEffects()
     {
+        // Snapshot which crisis types are currently active BEFORE we clear them,
+        // so we can fire OnCrisisResolved for each one. Without this, crisis
+        // widgets in GameUIController._activeCrises would leak on-screen when
+        // Safe Mode Recovery / Cancel Crisis is played.
+        var resolvedTypes = new System.Collections.Generic.List<CardData.EffectType>();
+        if (_solarStormExtraTimePerTurn > 0)
+            resolvedTypes.Add(CardData.EffectType.CrisisSolarStorm);
+        if (_thrusterAnomalyActive)
+            resolvedTypes.Add(CardData.EffectType.CrisisThrusterTax);
+        if (_groundStationConflictActive)
+            resolvedTypes.Add(CardData.EffectType.CrisisBlockDrawOnce);
+        if (_dataStorageFullActive)
+            resolvedTypes.Add(CardData.EffectType.CrisisBlockDataCollection);
+        if (_debrisFieldCrisisActive)
+            resolvedTypes.Add(CardData.EffectType.CrisisBlockNextManeuver);
+        if (_computerRebootCrisisActive)
+            resolvedTypes.Add(CardData.EffectType.CrisisComputerReboot);
+        if (_budgetCutRestoreAvailable)
+            resolvedTypes.Add(CardData.EffectType.CrisisBudgetCut);
+
         _powerDrainEachTurn = 0;
         _extraManeuverPowerCost = 0;
         _skipDrawOnce = false;
@@ -203,6 +223,12 @@ public class EncounterManager : MonoBehaviour
 
         if (deckManager != null)
             deckManager.RemoveAllCrisisCardsFromHand();
+
+        // Fire resolution events AFTER hand is cleared so SyncActiveCrisesFromHand
+        // sees the correct (zero) count when stress-test logic re-evaluates.
+        for (int i = 0; i < resolvedTypes.Count; i++)
+            OnCrisisResolved?.Invoke(resolvedTypes[i]);
+
         if (_currentLogicType == EncounterLogicType.SystemsStressTest)
         {
             _activeCrisesThisEncounter = 0;

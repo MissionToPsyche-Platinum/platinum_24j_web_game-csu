@@ -471,16 +471,23 @@ public class DeckManager : MonoBehaviour
                 EncounterManager.Instance?.NotifyBudgetSpent(card.costBudget);
         }
 
+        // Move card from hand to discard BEFORE applying the effect.
+        // This is important for crisis cards: ApplyEffect -> em.ClearCrisisEffect
+        // fires OnCrisisResolved, and EncounterManager.HandleCrisisResolved
+        // re-counts crisis cards in _hand via SyncActiveCrisesFromHand. If the
+        // played card is still in _hand at that moment the count comes back one
+        // too high and the active-crisis count (and Systems Stress Test UI)
+        // never decrements. Removing first also protects DiscardRandom-type
+        // effects from picking the just-played card.
+        _hand.RemoveAt(handIndex);
+        RemoveCardViewAt(handIndex);
+        _discard.Add(card);
+
         // Apply the card's effect
         ApplyEffect(card);
 
         if (EncounterManager.Instance != null && card.category == CardData.CardCategory.Maneuver)
             EncounterManager.Instance.NotifyManeuverPlayedSuccessfully();
-
-        // Move card from hand to discard
-        _hand.RemoveAt(handIndex);
-        RemoveCardViewAt(handIndex);
-        _discard.Add(card);
 
         // Show feedback
         string effectSummary = card.EffectSummary();
