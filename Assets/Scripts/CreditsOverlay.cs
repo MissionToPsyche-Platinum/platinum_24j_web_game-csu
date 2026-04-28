@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Full-screen credits overlay that lists the development team and shows the
@@ -14,22 +16,36 @@ public class CreditsOverlay : MonoBehaviour
 {
     private static CreditsOverlay _instance;
 
-    private CanvasGroup   _rootGroup;
-    private RectTransform _rootRect;
-    private bool          _built;
+    private CanvasGroup     _rootGroup;
+    private RectTransform   _rootRect;
+    private ScrollRect      _scroll;
+    private TextMeshProUGUI _assetCreditsTmp;
+    private Canvas          _hostCanvas;
+    private bool            _built;
 
     private static readonly Color BtnNormal    = new Color(0.255f, 0.353f, 0.749f, 1f);
     private static readonly Color BtnHighlight = new Color(0.310f, 0.420f, 0.820f, 1f);
     private static readonly Color BtnPressed   = new Color(0.200f, 0.290f, 0.650f, 1f);
 
     private const string TeamNames =
-        "Cole Pochedley   •   Het Patel   •   Robel Mezgebe   •   Parth Patel";
+        "Cole Pochedley   |   Het Patel   |   Robel Mezgebe   |   Parth Patel";
+
+    // URL for the only clickable link in the credits. Kept as a constant so the
+    // pointer-click handler and the rich-text <link> tag stay in sync.
+    private const string KenneyUrl = "https://kenney.nl/assets/ui-pack-sci-fi";
+    private const string KenneyLinkId = "kenney";
 
     // Asset / tooling attributions shown above the sponsor disclaimer.
+    // - Heading uses an inline <size>/<color> bump so it visually outranks the body
+    //   without needing a separate GameObject.
+    // - Bullets use the ASCII hyphen ("-  ") instead of U+2022 to avoid TMP atlas
+    //   gaps if the project font is ever swapped.
+    // - Kenney URL is wrapped in a TMP <link> tag; clicks are handled in Update().
     private const string AssetCredits =
-        "<b>Asset Credits</b>\n" +
-        "• Images and sound effects in this game were generated with the assistance of AI tools.\n" +
-        "• UI elements use the \"UI Pack - Sci-Fi\" from Kenney Game Assets (https://kenney.nl/assets/ui-pack-sci-fi).";
+        "<size=22><b><color=#FFFFFF>Asset Credits</color></b></size>\n" +
+        "-  Images, sound effects, and music in this game were generated with the assistance of AI tools and reviewed by the team.\n" +
+        "-  UI elements use the \"UI Pack - Sci-fi\" by Kenney Game Assets (CC0 1.0) — " +
+        "<link=\"" + KenneyLinkId + "\"><color=#7FB8FF><u>" + KenneyUrl + "</u></color></link>";
 
     // Disclaimer body, kept in two sections separated by a blank line so the
     // sponsor program guidance and the CSU/NASA legal notice read clearly.
@@ -85,6 +101,51 @@ public class CreditsOverlay : MonoBehaviour
     private void OnDestroy()
     {
         if (_instance == this) _instance = null;
+
+        // The overlay GameObjects are parented to the scene's canvas, so when the
+        // scene is unloaded they go with it. Drop our cached references so a future
+        // Show() rebuilds cleanly instead of touching destroyed UI objects.
+        _built           = false;
+        _rootGroup       = null;
+        _rootRect        = null;
+        _scroll          = null;
+        _assetCreditsTmp = null;
+        _hostCanvas      = null;
+        IsOpen           = false;
+    }
+
+    private void Update()
+    {
+        if (!IsOpen) return;
+
+        // Esc closes the overlay (standard modal UX).
+        var kb = Keyboard.current;
+        if (kb != null && kb[Key.Escape].wasPressedThisFrame)
+        {
+            Hide();
+            return;
+        }
+
+        // Detect clicks on TMP <link> tags inside the asset-credits text and open
+        // the corresponding URL in the user's default browser. Works in both
+        // standalone and WebGL builds (Application.OpenURL handles both).
+        if (_assetCreditsTmp == null) return;
+
+        var mouse = Mouse.current;
+        if (mouse == null || !mouse.leftButton.wasReleasedThisFrame) return;
+
+        Camera cam = (_hostCanvas != null && _hostCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            ? _hostCanvas.worldCamera
+            : null;
+
+        Vector2 mousePos = mouse.position.ReadValue();
+        int linkIndex = TMP_TextUtilities.FindIntersectingLink(_assetCreditsTmp, mousePos, cam);
+        if (linkIndex < 0) return;
+
+        var linkInfo = _assetCreditsTmp.textInfo.linkInfo[linkIndex];
+        string id = linkInfo.GetLinkID();
+        if (id == KenneyLinkId)
+            Application.OpenURL(KenneyUrl);
     }
 
     /// <summary>
@@ -121,6 +182,10 @@ public class CreditsOverlay : MonoBehaviour
         _rootGroup.blocksRaycasts = true;
         _rootGroup.interactable   = true;
         _rootRect.SetAsLastSibling();
+
+        // Always present the credits scrolled to the top, even on re-open.
+        if (_scroll != null)
+            _scroll.verticalNormalizedPosition = 1f;
     }
 
     public void Hide()
@@ -131,9 +196,10 @@ public class CreditsOverlay : MonoBehaviour
         _rootGroup.blocksRaycasts = false;
         _rootGroup.interactable   = false;
 
-        var mainMenu = FindFirstObjectByType<MainMenuUI>(FindObjectsInactive.Include);
-        if (mainMenu != null && mainMenu.mainMenuPanel != null)
-            mainMenu.mainMenuPanel.SetActive(true);
+        // Note: we no longer toggle MainMenuUI.mainMenuPanel here. The overlay sits
+        // on top of the still-active menu (its background is ~96% opaque), which
+        // keeps the menu's video/audio running and avoids a Start() re-init when
+        // the player returns. See MainMenuUI.OnOpenCredits.
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -147,6 +213,7 @@ public class CreditsOverlay : MonoBehaviour
 
         // Prefer the existing Main_Canvas so we sit inside the same scaler/sorting context as the menu.
         Transform parent = ResolveCanvasParent();
+        _hostCanvas = parent != null ? parent.GetComponentInParent<Canvas>() : null;
 
         var root   = new GameObject("CreditsOverlayRoot");
         _rootRect  = root.AddComponent<RectTransform>();
@@ -248,6 +315,7 @@ public class CreditsOverlay : MonoBehaviour
         scroll.vertical          = true;
         scroll.movementType      = ScrollRect.MovementType.Clamped;
         scroll.scrollSensitivity = 40f;
+        _scroll = scroll;
 
         var vpGO = new GameObject("Viewport", typeof(RectTransform));
         var vpRt = vpGO.GetComponent<RectTransform>();
@@ -292,6 +360,7 @@ public class CreditsOverlay : MonoBehaviour
         assets.enableWordWrapping = true;
         assets.richText           = true;
         assets.margin             = new Vector4(4f, 4f, 4f, 4f);
+        _assetCreditsTmp = assets;
 
         var dividerGO = new GameObject("Divider", typeof(RectTransform));
         dividerGO.transform.SetParent(contentRt, false);

@@ -279,15 +279,13 @@ public class MainMenuUI : MonoBehaviour
     /// <summary>
     /// Called by the Credits button. Opens the in-scene credits overlay.
     /// The overlay auto-instantiates if no scene instance exists, so this works
-    /// without any additional Inspector wiring.
+    /// without any additional Inspector wiring. The main menu panel is left
+    /// active beneath the overlay so its background video / audio keep playing
+    /// and no Start() re-init runs when the player returns.
     /// </summary>
     public void OnOpenCredits()
     {
-        if (CreditsOverlay.TryShow())
-        {
-            if (mainMenuPanel != null)
-                mainMenuPanel.SetActive(false);
-        }
+        CreditsOverlay.TryShow();
     }
 
     /// <summary>
