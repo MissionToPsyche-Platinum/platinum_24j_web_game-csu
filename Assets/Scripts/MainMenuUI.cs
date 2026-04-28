@@ -277,6 +277,20 @@ public class MainMenuUI : MonoBehaviour
     }
 
     /// <summary>
+    /// Called by the Credits button. Opens the in-scene credits overlay.
+    /// The overlay auto-instantiates if no scene instance exists, so this works
+    /// without any additional Inspector wiring.
+    /// </summary>
+    public void OnOpenCredits()
+    {
+        if (CreditsOverlay.TryShow())
+        {
+            if (mainMenuPanel != null)
+                mainMenuPanel.SetActive(false);
+        }
+    }
+
+    /// <summary>
     /// Optional: Quit button handler. Works in standalone builds.
     /// </summary>
     public void OnQuitGame()
