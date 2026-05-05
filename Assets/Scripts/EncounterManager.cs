@@ -696,7 +696,7 @@ public class EncounterManager : MonoBehaviour
     /// <summary>Starts Floor 4 Boss.</summary>
     public void StartMissionReviewBoss(int turnLimit)
     {
-        StartEncounter("MISSION REVIEW", "Present 3 Conclusions", 1, turnLimit, true);
+        StartEncounter("MISSION REVIEW", "Present 1 Conclusion", 1, turnLimit, true);
         _currentLogicType = EncounterLogicType.MissionReviewBoss;
         CheckBossConditions();
     }
@@ -728,7 +728,7 @@ public class EncounterManager : MonoBehaviour
         else if (_currentLogicType == EncounterLogicType.MissionReviewBoss)
         {
             var dt = DataTracker.Instance;
-            _currentProgress = (dt != null && dt.TotalConclusions >= 3) ? 1 : 0;
+            _currentProgress = (dt != null && dt.TotalConclusions >= 1) ? 1 : 0;
             OnProgressChanged?.Invoke(_currentProgress, _targetProgress);
 
             if (_currentProgress >= 1)

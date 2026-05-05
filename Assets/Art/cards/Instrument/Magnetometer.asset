@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 1
   costPower: 2
   costBudget: 0
-  costTime: 2
+  costTime: 0
   description: Collect 2 Magnetic data
   dataValue: 0
   cardArt: {fileID: 21300000, guid: 83b10aa057364084eb1b25618a623ede, type: 3}

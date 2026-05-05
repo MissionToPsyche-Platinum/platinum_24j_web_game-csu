@@ -58,15 +58,15 @@ public class DeckManager : MonoBehaviour
         // ── Resource ──
         ("Solar Array Deploy",   "Gain 3 Power this turn",                                  0, 0, 0, CardData.EffectType.GainPower,          3, 0, CardData.CardCategory.Resource,  "CardArt/solar array deploy"),
         ("Budget Request",       "Gain 3 Budget this turn",                                 0, 0, 0, CardData.EffectType.GainBudget,         3, 0, CardData.CardCategory.Resource,  "CardArt/budget request card"),
-        ("Mission Extension",    "Gain 5 Time (Permanent)",                                 0, 0, 5, CardData.EffectType.GainTime,            5, 0, CardData.CardCategory.Resource,  "CardArt/mission extension"),
+        ("Mission Extension",    "Gain 5 Time (Permanent)",                                 0, 0, 0, CardData.EffectType.GainTime,            5, 0, CardData.CardCategory.Resource,  "CardArt/mission extension"),
         ("Nuclear Battery",      "Gain 2 Power (+2 Power Permanent)",                       2, 2, 0, CardData.EffectType.AddTurnStartPower,   2, 0, CardData.CardCategory.Resource,  "CardArt/nuclear battery"),
         ("Power Conservation",   "All Power costs reduced by 1 this turn",                  0, 0, 0, CardData.EffectType.ReducePowerCosts,    1, 0, CardData.CardCategory.Resource,  "CardArt/Power Conservation"),
         ("Emergency Fund",       "Gain 2 Budget immediately",                               2, 0, 0, CardData.EffectType.GainBudget,          2, 0, CardData.CardCategory.Resource,  "CardArt/emergency fund"),
 
         // ── Instrument ──
-        ("Multispectral Imager",      "Collect 2 Surface data",           2, 0, 2, CardData.EffectType.CollectSurface,    2, 0, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
-        ("Gamma-Ray Spectrometer",    "Collect 3 Elemental data",         2, 0, 3, CardData.EffectType.CollectElemental,  3, 0, CardData.CardCategory.Instrument, "CardArt/Gamma-Ray & Neutron Spectrometer"),
-        ("Magnetometer",              "Collect 2 Magnetic data",          2, 0, 2, CardData.EffectType.CollectMagnetic,   2, 0, CardData.CardCategory.Instrument, "CardArt/Magnetometer"),
+        ("Multispectral Imager",      "Collect 2 Surface data",           2, 0, 0, CardData.EffectType.CollectSurface,    2, 0, CardData.CardCategory.Instrument, "CardArt/multispectral imager"),
+        ("Gamma-Ray Spectrometer",    "Collect 3 Elemental data",         2, 0, 0, CardData.EffectType.CollectElemental,  3, 0, CardData.CardCategory.Instrument, "CardArt/Gamma-Ray & Neutron Spectrometer"),
+        ("Magnetometer",              "Collect 2 Magnetic data",          2, 0, 0, CardData.EffectType.CollectMagnetic,   2, 0, CardData.CardCategory.Instrument, "CardArt/Magnetometer"),
         ("X-band Radio",              "Collect 3 Gravity data",           1, 0, 3, CardData.EffectType.CollectGravity,    3, 0, CardData.CardCategory.Instrument, "CardArt/X-band Radio"),
         ("Deep Space Optical Comms",  "Draw 2 cards",                     3, 0, 1, CardData.EffectType.DrawCards,         2, 0, CardData.CardCategory.Instrument, "CardArt/Deep Space Optical Comms"),
         ("Multi-Instrument Suite",    "Collect 1 of each data type",      4, 0, 2, CardData.EffectType.CollectAllData,    1, 0, CardData.CardCategory.Instrument, "CardArt/Multi-Instrument Suite"),

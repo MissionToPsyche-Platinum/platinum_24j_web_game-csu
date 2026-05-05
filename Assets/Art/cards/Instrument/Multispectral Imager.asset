@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 1
   costPower: 2
   costBudget: 0
-  costTime: 1
+  costTime: 0
   description: Collect 2 Surface data
   dataValue: 0
   cardArt: {fileID: 21300000, guid: 6d2bc31f72c7f4144aa8f992ca8ad03f, type: 3}

@@ -47,6 +47,7 @@ public class GameUIController : MonoBehaviour
     private DeckManager _deckManager;
     private EncounterManager _encounterManager;
     private CardRewardUI _cardRewardUI;
+    private DataCounterHUD _dataCounterHUD;
 
     [Header("Game Flow State")]
     private int _currentPhase = 1;
@@ -140,6 +141,8 @@ public class GameUIController : MonoBehaviour
         {
             _cardRewardUI.OnRewardsComplete += HandleRewardsComplete;
         }
+
+        _dataCounterHUD = gameObject.AddComponent<DataCounterHUD>();
 
         // Initial UI state from current values
         RefreshAllUI();
@@ -401,7 +404,7 @@ public class GameUIController : MonoBehaviour
                 break;
             }
             case 2: // Orbit Insertion
-                _encounterManager.StartOrbitInsertionBoss(8);
+                _encounterManager.StartDataCollectionEncounter("Collect 12 Data (any type)", 12, 10);
                 break;
             case 3: // Science Operations — randomly roll encounter type
             {
@@ -453,6 +456,11 @@ public class GameUIController : MonoBehaviour
         int encounterDisplay = _encountersCompletedInPhase + 1;
         hudPanel?.SetFloorPhase(floor, encounterDisplay, isBoss);
         EncounterManager.Instance?.SetRunFloor(floor);
+
+        if (floor == 4)
+            _dataCounterHUD?.Show();
+        else
+            _dataCounterHUD?.Hide();
     }
 
     /// <summary>Updates the deck pile counter label.</summary>

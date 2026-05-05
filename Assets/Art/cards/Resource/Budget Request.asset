@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 0
   costPower: 0
   costBudget: 0
-  costTime: 1
+  costTime: 0
   description: Gain 3 Budget this turn
   dataValue: 0
   cardArt: {fileID: 21300000, guid: 4f537b5b47ec8374b8c8f0d907fa9323, type: 3}
